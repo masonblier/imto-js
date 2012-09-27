@@ -1,2 +1,2 @@
 --compilers coffee:coffee-script
---require should
+--require test/spec_helper
