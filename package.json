@@ -6,9 +6,6 @@
   "contributors": [ 
     { "name": "Mason Blier", "email": "mason.blier@gmail.com>" }
   ],
-  "scripts": {
-    "install":"./node_modules/.bin/cake build"
-  },
   "dependencies": {
     "coffee-script": ">= 1.3.0"
   },
