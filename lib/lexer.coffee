@@ -15,7 +15,7 @@ Lexer = (str) ->
     memos = []
 
     # constructor
-    constructor: (str) ->
+    constructor: (str) -> 
       c = 0
       input = str
       replaceSpecials()
