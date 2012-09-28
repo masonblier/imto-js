@@ -11,7 +11,9 @@
   },
   "devDependencies": {
     "mocha": "*",
-    "should": "*"
+    "chai": "*",
+    "sinon": "*",
+    "sinon-chai": "*"
   },
   "keywords": ["redl"],
   "bin": { "redl": "./bin/redl-js" },
