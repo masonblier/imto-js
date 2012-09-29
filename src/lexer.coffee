@@ -8,7 +8,7 @@ Lexer = (str) ->
   class LexerClass
     # instance variables
     c = 0
-    m = -1
+    memo_idx = -1
     input = ''
 
     special = []
@@ -25,33 +25,38 @@ Lexer = (str) ->
       while t = @next()
         t
 
-    # next (memoized)
-    next: (i=1) ->
-      o = m+i
-      while m < o
-        unless memos[m+=1]
-          memos[m] = next_token()
-      memos[m]
+    # navigation cursor
+    cursor: () =>
+      class CursorClass
+        idx = -1
+        # next (memoized)
+        next: (i=1) ->
+          at(idx += i)
 
-    # back up a token
-    back: (i=1) ->
-      m-=i
-      memos[m]
+        # back up a token
+        back: (i=1) ->
+          at(idx -= i)
 
-    # peak ahead
-    peek: (i=1) ->
-      o = m+i
-      @next() while m < o
-      m = o-i
-      memos[o]
+        # peak ahead
+        peek: (i=1) ->
+          at(idx + i)
 
-    # peak behind
-    prev: (i=1) ->
-      memos[m-i]
+        # peak behind
+        prev: (i=1) ->
+          at(idx - i)
+
+      return new CursorClass()
 
 
     # private
 
+    at = (idx) ->
+      # it follows the lexer sequentially, 
+      # memoizing to provide back functionality
+      while memo_idx < idx
+        unless memos[memo_idx+=1]
+          memos[memo_idx] = next_token()
+      memos[idx]
 
     # find and replace special sections
     replaceSpecials = () ->

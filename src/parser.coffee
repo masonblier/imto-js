@@ -34,11 +34,11 @@ Parser = (lexer) ->
 
     block: (subject) ->
       if subject?.type is "block"
-        return {type: "block", tree: Parser(Lexer(subject.source)).all()}
+        return {type: "block", tree: Parser(Lexer(subject.source).cursor()).all()}
       if subject?.type is "linefeed"
         if @lexer.peek()?.type is "block"
           n = @lexer.next()
-          return {type: "block", tree: Parser(Lexer(n.source)).all()}
+          return {type: "block", tree: Parser(Lexer(n.source).cursor()).all()}
 
     function: (subject) ->
       if subject?.type is "function"

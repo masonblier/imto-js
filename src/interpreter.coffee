@@ -21,7 +21,7 @@ class Interpreter
       n
 
   parse: (code) ->
-    p = Parser(Lexer(code))
+    p = Parser(Lexer(code).cursor())
     while n = p.next()
       n
 

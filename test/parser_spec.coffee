@@ -1,4 +1,4 @@
-redl = require('../')
+redl = require('../src/redl')
 
 parse = (str) ->
   new redl.Interpreter().parse(str)
