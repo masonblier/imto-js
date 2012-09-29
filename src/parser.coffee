@@ -5,14 +5,14 @@ Lexer = require './lexer'
 # wrapped in a function to give private instance scope
 Parser = (lexer) ->
   class ParserClass
-    constructor: (@lexer) ->
+    constructor: (@cursor) ->
       
     all: () ->
       while n = @next()
         n
     next: () ->
-      subject = @lexer.next()
-      subject = @lexer.next() while subject?.type is "linefeed"
+      subject = @cursor.next()
+      subject = @cursor.next() while subject?.type is "linefeed"
       @expr(subject)
 
     expr: (subject) ->
@@ -24,10 +24,9 @@ Parser = (lexer) ->
 
     parenclosure: (subject) ->
       if subject?.token is "("
-
-        inner = @expr(@lexer.next())
-        if @lexer.peek()?.token is ")"
-          @lexer.next()
+        inner = @expr(@cursor.next())
+        if @cursor.peek()?.token is ")"
+          @cursor.next()
           return inner
         else
           throw new Error "Invalid syntax"
@@ -36,13 +35,13 @@ Parser = (lexer) ->
       if subject?.type is "block"
         return {type: "block", tree: Parser(Lexer(subject.source).cursor()).all()}
       if subject?.type is "linefeed"
-        if @lexer.peek()?.type is "block"
-          n = @lexer.next()
+        if @cursor.peek()?.type is "block"
+          n = @cursor.next()
           return {type: "block", tree: Parser(Lexer(n.source).cursor()).all()}
 
     function: (subject) ->
       if subject?.type is "function"
-        return {type: "function", body: @expr(@lexer.next())}
+        return {type: "function", body: @expr(@cursor.next())}
 
     assignment: (subject) ->
       @property_assignment(subject) or
@@ -50,16 +49,16 @@ Parser = (lexer) ->
 
     property_assignment: (subject) ->
       if subject?.type is "symbol"
-        n = @lexer.peek()
+        n = @cursor.peek()
         if n?.token is ":"
-          return {type: "property_assignment", symbol: subject.token, value: @expr(@lexer.next(2))}
+          return {type: "property_assignment", symbol: subject.token, value: @expr(@cursor.next(2))}
       return null
 
     local_assignment: (subject) ->
       if subject?.type is "symbol"
-        n = @lexer.peek()
+        n = @cursor.peek()
         if n?.token is "="
-          return {type: "assignment", symbol: subject.token, value: @expr(@lexer.next(2))}
+          return {type: "assignment", symbol: subject.token, value: @expr(@cursor.next(2))}
 
   return new ParserClass(lexer)
 
