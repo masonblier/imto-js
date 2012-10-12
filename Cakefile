@@ -22,7 +22,7 @@ build = () ->
   compile_cs browserify
 
 test = () ->
-  run_proc './node_modules/.bin/mocha', ['--colors','--reporter','DOT']
+  run_proc './node_modules/.bin/mocha', ['--colors','--reporter','spec']
 
 task 'build', "Build all js files", -> build()
 task 'test', "Run all tests", -> test()
