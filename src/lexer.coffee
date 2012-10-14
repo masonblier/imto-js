@@ -1,242 +1,149 @@
-# Lexer
+# requirements
+
+Cursor = require "./cursor"
 
 WHITESPACE = [' ', '\t']
 OPERATORS = ['=','+','-','*','/','<','>','%','&','(',')','[',']','^',':','?','.']
 
-# this is a hack, its wrapped in a function so that we can have instance-level private variables
-Lexer = (str) ->
-  class LexerClass
-    # instance variables
-    c = 0
-    memo_idx = -1
-    input = ''
+class SyntaxError extends Error
 
-    special = []
-    memos = []
+class CharCursor extends Cursor
+  constructor: (@input) ->
+    super()
+    @input = @input.replace("\r","")
+    @lines = @input.split("\n")
+    @line_ends = []
+    @indents = []
+    acc = 0
+    for line in @lines
+      acc += line.length
+      @line_ends.push acc
+      acc++
+    if acc != @input.length+1
+      throw new Error("Tracking went wrong #{acc}, #{@input.length+1}")
 
-    # constructor
-    constructor: (str) -> 
-      c = 0
-      input = str
-      replaceSpecials()
+  at: (index) =>
+    return undefined if index < 0 or index >= @input.length
+    line = 0
+    while index > @line_ends[line]
+      line++
+    return {
+      line: line, 
+      column: index - (if line > 0 then @line_ends[line-1]+1 else 0),
+      char: @input[index]
+    }
 
-    # all tokens
-    all: () ->
-      while t = @next()
-        t
+  indent: (index) =>
+    line = 0
+    while index > @line_ends[line]
+      line++
+    indent = if @indents[line]? then @indents[line] else 0
+    if indent is 0
+      indent++ while @lines[line][indent] in WHITESPACE
+    indent
 
-    # navigation cursor
-    cursor: () =>
-      class CursorClass
-        idx = -1
-        # next (memoized)
-        next: (i=1) ->
-          at(idx += i)
+#
+# Lexer
+#
 
-        # back up a token
-        back: (i=1) ->
-          at(idx -= i)
+module.exports = class Lexer
 
-        # peak ahead
-        peek: (i=1) ->
-          at(idx + i)
+  # export Lexer.CharCursor
+  @CharCursor: CharCursor
 
-        # peak behind
-        prev: (i=1) ->
-          at(idx - i)
+  # constructor
+  constructor: (@input) ->
+    @char_index = 0
+    @memo_index = -1
+    @memos = []
+    @linestart = true
+    @indent = 0
+    @stream = new CharCursor(@input)
 
-      return new CursorClass()
+  # cursor
+  cursor: () =>
+    new Cursor(@)
 
+  # at
+  at: (req_index) =>
+    # it follows the lexer sequentially, 
+    # memoizing to provide back functionality
+    while @memo_index < req_index
+      unless @memos[@memo_index+=1]
+        @memos[@memo_index] = @next_token()
+    @memos[req_index]
 
-    # private
+  # next_token
+  next_token: () =>
+    return null if @char_index >= @input.length
 
-    at = (idx) ->
-      # it follows the lexer sequentially, 
-      # memoizing to provide back functionality
-      while memo_idx < idx
-        unless memos[memo_idx+=1]
-          memos[memo_idx] = next_token()
-      memos[idx]
+    buffer = ''
 
-    # find and replace special sections
-    replaceSpecials = () ->
-      # whitespace blocks
-      lines = input.split '\n'
-      indent = ''
-      while (not /\S/.test lines[0]) and lines.length > 1
-        lines.splice(0,1)
-      if imtch = /^\s+/.exec lines[0] and imtch?
-        indent = (imtch)[0]
-
-      # next step is to find indented areas and split them out
-      i = 0
-      l = -1
-      while (i <= lines.length)
-        while ( i < lines.length and (lines[i].indexOf indent is 0) and /^\s/.test lines[i].substr(indent.length) )
-          if l is -1 # new indented block
-            l = i
-          i++
-        if l >= 0
-          str = lines.splice(l,i-l).join '\n'
-          idx = special.length
-          lines.splice(l,0,"{#{idx}}")
-          special[idx] = { type: 'block', token: str, 'source': formatBlockSource(str) }
-          i = l
-          l = -1
-        i++
-      input = lines.join '\n'
-
-      # other blocks
-      i = 0
-      d = 0
-      l = 0
-      while (i < input.length)
-        if input[i] is '{'
-          if d is 0 then l = i
-          d += 1
-        else if input[i] is '}'
-          d -= 1
-          if d is 0
-            token = input.substr(l,i-l+1)
-            if /^(\s*)\{([0-9])+\}(\s*)$/.test token
-              i++
-              continue
-            else if (imtch = /^\{(\s*)\{([0-9])+\}(\s*)\}$/.exec token) and imtch?
-              marker = '{'+imtch[2]+'}'
-              input = (input.substr(0,l)+marker+input.substr(i+1))
-            else
-              k = special.length
-              marker = "{#{k}}"
-              input = (input.substr(0,l)+marker+input.substr(i+1))
-              special[k] = { type: 'block', 'token': token, 'source': formatBlockSource(token) }
-            i = l+marker.length
-          if d <= -1
-            throw 'parser stack index out of bounds'
-        i += 1
-
-      if d > 0 then throw 'parser stack unbalanced'
-
-      # function signatures
-      while (match = /\(((?:[,\t ]*[a-zA-Z_][a-zA-Z0-9_]*)+[\t ]*)?\)[\t ]*[=-]>/.exec input) != null
-        i = special.length
-        input = input.replace(match[0],"{#{i}}")
-        paramList = []
-        submatch = /\((.*)\)/.exec match[0]
-        params = if /,/.test submatch[1] then submatch[1].split ',' else []
-        for p in params
-          paramList.push p.trim()
-        special[i] = { type: 'function', 'token': match[0], paramList: paramList }
-
-    # takes a block, formats it, and cuts indendation
-    formatBlockSource = (source) ->
-      work = source
-      indent = ''
-      if work[0] is '{' and work[work.length-1] is '}'
-        work = work.substr(1,work.length-2)
-      lines = work.split '\n'
-      # first line empty
-      while (not /\S/.test lines[0]) and lines.length > 1
-        lines.splice(0,1)
-      if (imtch = /^\s+/.exec lines[0]) and imtch?
-        indent = imtch[0]
-      
-      work = (line.replace(indent,'') for line in lines).join('\n')
-      return work
-
-    # next token
-    next_token = () ->
-      return null if c >= input.length
-
-      x = input[c]
-      c += 1
-      buffer = ''
-
-      # skip whitespace
-      while x in WHITESPACE
-        x = input[c]
-        c += 1
-
-      # undefined
-      if x is undefined
-        return { type: 'none', token: "" }
-
-      # match special
-      if x == '{'
-        loop
-          x = input[c]
-          c++
-          break unless c < input.length and x != '}'
-          buffer += x
-        index = parseInt(buffer)
-        return special[index]
+    # match indentation block
+    if @stream.indent(@char_index) > @indent && @input[@char_index] != "\n"
+      console.log "indent"
+      indent = @stream.indent(@char_index)
+      while (@stream.indent(@char_index) > @indent)
+        buffer += @input[@char_index]
+        @char_index++
+      if @input[@char_index-1] == "\n"
+        @char_index--
+        buffer = buffer.substr(0,buffer.length-1)
+      source = (line.substr(indent) for line in buffer.split("\n")).join("\n")
+      return { type: 'block', token: buffer, source: source }
 
 
-      # match operator
-      if x in OPERATORS
-        loop
-          buffer += x
-          x = input[c]
-          break unless x in OPERATORS
-          c += 1
-          break unless c < input.length
-        return {
-          type: 'operator',
-          token: buffer
-        }
+    while @input[@char_index] in WHITESPACE
+      console.log "whitespace"
+      @char_index += 1
 
-      # match symbol
-      if /([a-zA-Z_]|@|\.)/.test x
-        token = ''
-        loop
-          token += x
-          break unless c < input.length
-          x = input[c]
-          break unless x is '.' or /([a-zA-Z0-9_])/.test x
-          c++
-        return {
-          type: 'symbol',
-          token: token
-        }
+    return null if @char_index > @input.length
 
-      # match numbers
-      if /([0-9])/.test x
-        value = ''
-        loop
-          value += x
-          break unless c < input.length &&
-          x = input[c]
-          break unless /([0-9]|\.)/.test x
-          c++
-        return {
-          type: 'literal',
-          token: value,
-          value: parseFloat(value)
-        }
+    # match OPERATORS
+    if @input[@char_index] in OPERATORS
+      while (c = @input[@char_index]) in OPERATORS
+        buffer += c
+        @char_index += 1
+      return { type: "operator", token: buffer}
 
-      # match strings
-      if x is "'" or x is '"'
-        sym = x
-        value = ''
-        loop
-          break unless c < input.length
-          x = input[c]
-          c++
-          break if x == sym
-          value += x 
-        
-        return {
-          type: 'literal',
-          token: sym+value+sym,
-          value: value
-        }
+    # match SYMBOL
+    if /([a-zA-Z_])/.test @input[@char_index]
+      while (c = @input[@char_index]) and /([a-zA-Z0-9_])/.test c
+        buffer += c
+        @char_index += 1
+      return {type: "symbol", token: buffer}
 
-      # line feed
-      if x is '\n'
-        return { type: 'linefeed', token: '\n' }
+    # match NUMBER
+    if /([0-9])/.test @input[@char_index]
+      while (c = @input[@char_index]) and /([0-9]|\.|\,)/.test c
+        buffer += c
+        @char_index += 1
+      if @input[@char_index-1] == ',' # toss back last commas
+        buffer = buffer.substr(0,buffer.length-1)
+        @char_index -= 1
+      return {type: "number", token: buffer, value: parseFloat(buffer.replace(",",""))}
 
-      # unknown value
-      return { type: 'unknown' }
+    # match STRINGS
+    if @input[@char_index] in ["'",'"']
+      boundary = @input[@char_index]
+      @char_index += 1
+      while (c = @input[@char_index]) != boundary
+        buffer += c
+        @char_index += 1
+        if (c = @input[@char_index]) == "\\" # read chars after \ regardless
+          buffer += c
+          @char_index += 1
+          buffer += c
+          @char_index += 1
+      if @input[@char_index] == boundary
+        @char_index += 1
+        return {type: "string", token: boundary+buffer+boundary, value: buffer}
+      else
+        throw new SyntaxError("Unterminated String")
 
-  return new LexerClass(str)
+    # match LINEFEED
+    if @input[@char_index] == "\n"
+      @char_index += 1
+      return {type: 'linefeed', token: "\n"}
 
-module.exports = Lexer
+    throw new SyntaxError("Unknown token: #{@input[@char_index]}")

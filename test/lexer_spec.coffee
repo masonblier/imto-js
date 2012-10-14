@@ -1,39 +1,41 @@
 redl = require('../src/redl')
 
+lex = (str) -> new redl.Lexer(str)
+
 describe 'lexer', ->  
 
   describe 'token types', ->
 
     it 'symbols', ->
-      cursor = redl.Lexer("this_is_a_token ").cursor()
+      cursor = lex("this_is_a_token ").cursor()
 
       node = cursor.next()
       node.token.should.eql 'this_is_a_token'
       node.type.should.eql 'symbol'
 
-    it 'literals', ->
-      cursor = redl.Lexer("2.0 'hi'").cursor()
+    it 'number and string', ->
+      cursor = lex("2.0 'hi'").cursor()
 
       first = cursor.next()
       first.token.should.eql '2.0'
-      first.type.should.eql 'literal' 
+      first.type.should.eql 'number' 
       first.value.should.eql 2
 
       second = cursor.next()
       second.token.should.eql "'hi'"
-      second.type.should.eql 'literal'
+      second.type.should.eql 'string'
       second.value.should.eql 'hi'
 
     it 'operators', ->
       tests = ['+=', '%', '(', ')']
-      cursor = redl.Lexer(tests.join ' ').cursor()
+      cursor = lex(tests.join ' ').cursor()
       for op in tests
         next = cursor.next()
         next.token.should.eql op
         next.type.should.eql 'operator'
 
     it 'function signature', ->
-      cursor = redl.Lexer("( a , b )   ->  ").cursor()
+      cursor = lex("( a , b )   ->  ").cursor()
       sig = cursor.next()
       sig.paramList.should.have.length(2)
       sig.paramList.should.include 'a'
@@ -41,7 +43,7 @@ describe 'lexer', ->
       sig.type.should.eql 'function'
 
     it 'block :: curly bracket delimited', ->
-      cursor = redl.Lexer("symb { this_is_a_block } 'post block'").cursor()
+      cursor = lex("symb { this_is_a_block } 'post block'").cursor()
       # random other tokens so that we're not always trying a clean slate
       node = cursor.next()
       node.type.should.eql 'symbol'
@@ -52,20 +54,24 @@ describe 'lexer', ->
       # check if post-block node still parses right
       node = cursor.next()
       node.value.should.eql "post block"
-      node.type.should.eql 'literal'
+      node.type.should.eql 'string'
 
     it 'bracketted indent formatter test', ->
-      cursor = redl.Lexer("{   \n  this is\n    an indent\n  test\n}").cursor()
+      console.log "a"
+      cursor = lex("{   \n  this is\n    an indent\n  test\n}").cursor()
+      console.log "b"
       node = cursor.next()
+      console.log "c"
       node.source.should.match /^this is/
       node.source.should.match /^  an indent/m
       node.type.should.eql 'block'
 
     it 'block :: indentation delimited', ->
-      cursor = redl.Lexer("\n'this is'\n  a 'block'\n  that.should 'get all of this'\nbut not this\n").cursor()
+      cursor = lex("'this is'\n  a 'block'\n  that.should 'get all of this'\nbut not this\n").cursor()
       # first line
       node = cursor.next()
       node.value.should.eql "this is"
+
       # line feed
       node = cursor.next()
       node.token.should.eql '\n'
@@ -95,7 +101,7 @@ describe 'lexer', ->
               @
             myObj.this_method
             '''
-    cursor = redl.Lexer(input).cursor()
+    cursor = lex(input).cursor()
     # first line
     node = cursor.next()
     node.token.should.eql 'myObj'
@@ -121,7 +127,7 @@ describe 'lexer', ->
     node.type.should.eql 'symbol'
 
     # test the block
-    cursor = redl.Lexer(block).cursor()
+    cursor = lex(block).cursor()
     node = cursor.next()
     node.token.should.eql 'this_var'
     node = cursor.next() # =
@@ -144,11 +150,11 @@ describe 'lexer', ->
     node.type.should.eql 'symbol'
 
   it 'isolate parenthesis lexer bug', ->
-    cursor = redl.Lexer("( 2) ").cursor()
+    cursor = lex("( 2) ").cursor()
     node = cursor.next()
     node.token.should.eql '('
     node = cursor.next()
-    node.type.should.eql 'literal'
+    node.type.should.eql 'number'
     node.token.should.eql '2'
     node = cursor.next()
     node.token.should.eql ')'

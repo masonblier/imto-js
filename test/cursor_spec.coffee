@@ -2,7 +2,7 @@ redl = require('../src/redl')
 
 describe 'cursor', ->
     beforeEach ->
-      @cursor = redl.Lexer("one two three four").cursor()
+      @cursor = (new redl.Lexer("one two three four")).cursor()
 
     it 'should get the #next', ->
       @cursor.next().token.should.eql 'one'
