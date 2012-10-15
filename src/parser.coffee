@@ -1,7 +1,10 @@
 # Parser
 
 Lexer = require './lexer'
+Parser = require './parser'
 Cursor = require './Cursor'
+
+parse = (str) -> if str? then (new Parser(new Lexer(str))).all() else {}
 
 # wrapped in a function to give private instance scope
 module.exports = class Parser extends Cursor

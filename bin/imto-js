@@ -2,7 +2,7 @@
 
 path = require('path')
 fs   = require('fs')
-lib  = path.join(path.dirname(fs.realpathSync(__filename)), '../src')
+lib  = path.join(path.dirname(fs.realpathSync(__filename)), '../lib')
 {inspect} = require 'util'
 
 if process.argv.length > 2 and process.argv[process.argv.length-1].charAt(0) != "-"
@@ -10,6 +10,6 @@ if process.argv.length > 2 and process.argv[process.argv.length-1].charAt(0) != 
   interpreter = new imto.Interpreter()
   fn = interpreter[if "-L" in process.argv then "lex" else "parse"]
   buffer = fs.readFileSync(process.argv[process.argv.length-1], "utf8")
-  process.stdout.write "#{interpreter.print(fn buffer)}\n"
+  console.log interpreter.print (fn buffer).all()
 else
   require(lib + '/command')

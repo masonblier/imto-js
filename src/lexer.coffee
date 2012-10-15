@@ -61,7 +61,7 @@ module.exports = class Lexer extends Cursor
     @indent = 0
     @char_cursor = new CharCursor(input)
     # skip starter newlines
-    while @char_cursor.peek().char == "\n"
+    while @char_cursor.peek()?.char == "\n"
       @char_cursor.next()
 
   # at
@@ -95,7 +95,7 @@ module.exports = class Lexer extends Cursor
     tracking_start = cc.peek()
 
     # match indentation block
-    if cc.indent(cc.index) > @indent && cc.peek()?.char != "\n"
+    if cc.peek()? and cc.peek().char != "\n" and cc.indent(cc.index) > @indent
       indent = cc.indent(cc.index)
       while cc.index < cc.length and (cc.indent(cc.index) > @indent)
         buffer += cc.next().char
@@ -209,4 +209,4 @@ module.exports = class Lexer extends Cursor
         tracking: { start: tracking_start, end: cc.peek(0) } 
       }
 
-    throw new SyntaxError("Unknown token: #{cc.peek()}")
+    throw new SyntaxError("Unknown token: #{cc.next()}")

@@ -1,9 +1,11 @@
 # Interpreter
 
-clc = #require('cli-color')
-  green: (a) -> a
-  blue:  (a) -> a
-  red:   (a) -> a
+util = require 'util'
+pp = (o) -> console.log util.inspect o, true, 4, true
+clc = require('cli-color')
+  # green: (a) -> a
+  # blue:  (a) -> a
+  # red:   (a) -> a
 
 Context = require('./context')
 Lexer = require('./lexer')
@@ -27,7 +29,7 @@ class Interpreter
     (for node in list
       head = "#{indent}(#{clc.green(node.type)}"
       if node.type is "block"
-        "#{head}\n#{@print(node.tree,indent+"  ")}\n#{indent})"
+        "#{head}\n#{@print(@parse(node.source).all(),indent+"  ")}\n#{indent})"
       else if node.type is "function"
         "#{head}\n#{@print([node.body],indent+"  ")}\n#{indent})"
       else if node.type is "assignment" or node.type is "property_assignment"

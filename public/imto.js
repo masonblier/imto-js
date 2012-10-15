@@ -436,15 +436,16 @@ require.define("/interpreter.js",function(require,module,exports,__dirname,__fil
       if (indent == null) {
         indent = "";
       }
-      return ((function() {
+      if ((list != null ? list.all : void 0) != null) {
+        list = list.all();
+      }
+      return console.log(list ? ((function() {
         var _i, _len, _results;
         _results = [];
         for (_i = 0, _len = list.length; _i < _len; _i++) {
           node = list[_i];
           head = "" + indent + "(" + (clc.green(node.type));
-          if (node.type === "block") {
-            _results.push("" + head + "\n" + (this.print(node.tree, indent + "  ")) + "\n" + indent + ")");
-          } else if (node.type === "function") {
+          if (node.type === "function") {
             _results.push("" + head + "\n" + (this.print([node.body], indent + "  ")) + "\n" + indent + ")");
           } else if (node.type === "assignment" || node.type === "property_assignment") {
             _results.push("" + head + " " + (clc.blue("" + node.symbol)) + "\n" + (this.print([node.value], indent + "  ")) + "\n" + indent + ")");
@@ -455,7 +456,7 @@ require.define("/interpreter.js",function(require,module,exports,__dirname,__fil
           }
         }
         return _results;
-      }).call(this)).join("\n");
+      }).call(this)).join("\n") : list);
     };
 
     return Interpreter;
@@ -525,6 +526,7 @@ require.define("/lexer.js",function(require,module,exports,__dirname,__filename,
 
       CharCursor.__super__.constructor.call(this);
       this.input = this.input.replace("\r", "");
+      this.length = this.input.length;
       this.lines = this.input.split("\n");
       this.line_ends = [];
       this.indents = [];
@@ -585,18 +587,18 @@ require.define("/lexer.js",function(require,module,exports,__dirname,__filename,
     Lexer.CharCursor = CharCursor;
 
     function Lexer(input) {
-      this.input = input;
       this.next_token = __bind(this.next_token, this);
 
       this.at = __bind(this.at, this);
-
       Lexer.__super__.constructor.call(this);
-      this.char_index = 0;
       this.memo_index = -1;
       this.memos = [];
       this.linestart = true;
       this.indent = 0;
-      this.char_cursor = new CharCursor(this.input);
+      this.char_cursor = new CharCursor(input);
+      while (this.char_cursor.peek().char === "\n") {
+        this.char_cursor.next();
+      }
     }
 
     Lexer.prototype.at = function(req_index) {
@@ -609,25 +611,38 @@ require.define("/lexer.js",function(require,module,exports,__dirname,__filename,
     };
 
     Lexer.prototype.next_token = function() {
-      var boundary, buffer, c, indent, line, lookahead, source, stack, tracking_start, type, ws, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7, _ref8, _ref9;
+      var boundary, buffer, cc, i, indent, line, lookahead, source, stack, tracking_start, type, ws, _ref, _ref1, _ref10, _ref11, _ref12, _ref13, _ref14, _ref15, _ref16, _ref17, _ref18, _ref19, _ref2, _ref20, _ref21, _ref22, _ref23, _ref24, _ref25, _ref26, _ref3, _ref4, _ref5, _ref6, _ref7, _ref8, _ref9;
       buffer = '';
-      tracking_start = this.char_cursor.at(this.char_index);
-      if (this.char_cursor.indent(this.char_index) > this.indent && this.input[this.char_index] !== "\n") {
-        indent = this.char_cursor.indent(this.char_index);
-        while (this.char_index < this.input.length && (this.char_cursor.indent(this.char_index) > this.indent)) {
-          buffer += this.input[this.char_index];
-          this.char_index++;
+      cc = this.char_cursor;
+      ws = 1;
+      while (_ref = (_ref1 = cc.peek(ws)) != null ? _ref1.char : void 0, __indexOf.call(WHITESPACE, _ref) >= 0) {
+        ws += 1;
+      }
+      if (ws > 1 && ((_ref2 = cc.peek(ws)) != null ? _ref2.char : void 0) === "\n") {
+        cc.next(ws);
+      }
+      while (((_ref3 = cc.peek()) != null ? _ref3.char : void 0) === "\n" && ((_ref4 = cc.peek(2)) != null ? _ref4.char : void 0) === "\n") {
+        cc.next();
+      }
+      while (((_ref5 = cc.peek()) != null ? _ref5.char : void 0) === "\n" && cc.indent(cc.index + 1) > this.indent) {
+        cc.next();
+      }
+      tracking_start = cc.peek();
+      if (cc.indent(cc.index) > this.indent && ((_ref6 = cc.peek()) != null ? _ref6.char : void 0) !== "\n") {
+        indent = cc.indent(cc.index);
+        while (cc.index < cc.length && (cc.indent(cc.index) > this.indent)) {
+          buffer += cc.next().char;
         }
-        if (this.input[this.char_index - 1] === "\n") {
-          this.char_index--;
+        if (((_ref7 = cc.prev(0)) != null ? _ref7.char : void 0) === "\n") {
+          cc.back();
           buffer = buffer.substr(0, buffer.length - 1);
         }
         source = ((function() {
-          var _i, _len, _ref, _results;
-          _ref = buffer.split("\n");
+          var _i, _len, _ref8, _results;
+          _ref8 = buffer.split("\n");
           _results = [];
-          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-            line = _ref[_i];
+          for (_i = 0, _len = _ref8.length; _i < _len; _i++) {
+            line = _ref8[_i];
             _results.push(line.substr(indent));
           }
           return _results;
@@ -638,62 +653,67 @@ require.define("/lexer.js",function(require,module,exports,__dirname,__filename,
           source: source,
           tracking: {
             start: tracking_start,
-            end: this.char_cursor.at(this.char_index - 1)
+            end: cc.peek(0)
           }
         };
       }
-      while (_ref = this.input[this.char_index], __indexOf.call(WHITESPACE, _ref) >= 0) {
-        this.char_index += 1;
+      while (_ref8 = (_ref9 = cc.peek()) != null ? _ref9.char : void 0, __indexOf.call(WHITESPACE, _ref8) >= 0) {
+        cc.next();
       }
-      if (this.char_index >= this.input.length) {
+      if (!(cc.index < cc.length)) {
         return null;
       }
-      tracking_start = this.char_cursor.at(this.char_index);
-      if ((_ref1 = this.input[this.char_index]) === "{" || _ref1 === "[" || _ref1 === "(") {
+      tracking_start = cc.peek();
+      if ((_ref10 = cc.peek().char) === "{" || _ref10 === "[" || _ref10 === "(") {
         stack = 1;
-        buffer = this.input[this.char_index];
-        this.char_index += 1;
+        buffer = cc.next().char;
         type = 'block';
-        while (stack > 0 && this.char_index < this.input.length) {
-          if ((_ref2 = this.input[this.char_index]) === "}" || _ref2 === "]" || _ref2 === ")") {
+        while (stack > 0 && cc.index < cc.length) {
+          if ((_ref11 = cc.peek().char) === "}" || _ref11 === "]" || _ref11 === ")") {
             stack -= 1;
           }
-          if ((_ref3 = this.input[this.char_index]) === "{" || _ref3 === "[" || _ref3 === "(") {
+          if ((_ref12 = cc.peek().char) === "{" || _ref12 === "[" || _ref12 === "(") {
             stack += 1;
           }
-          buffer += this.input[this.char_index];
-          this.char_index += 1;
+          buffer += cc.next().char;
         }
         if (stack > 0) {
           throw new SyntaxError("Unbalanced Parenthesis");
         }
         source = buffer.substring(1, buffer.length - 1);
-        lookahead = 0;
-        while (_ref4 = this.input[this.char_index + lookahead], __indexOf.call(WHITESPACE, _ref4) >= 0) {
+        lookahead = 1;
+        while (_ref13 = (_ref14 = cc.peek(lookahead)) != null ? _ref14.char : void 0, __indexOf.call(WHITESPACE, _ref13) >= 0) {
           lookahead += 1;
         }
-        if (this.input[this.char_index + lookahead] === "-" && this.input[this.char_index + lookahead + 1] === ">") {
-          buffer += this.input.substr(this.char_index, lookahead + 2);
-          this.char_index = this.char_index + lookahead + 2;
+        if (((_ref15 = cc.peek(lookahead)) != null ? _ref15.char : void 0) === "-" && ((_ref16 = cc.peek(lookahead + 1)) != null ? _ref16.char : void 0) === ">") {
+          buffer += ((function() {
+            var _i, _ref17, _results;
+            _results = [];
+            for (i = _i = 0, _ref17 = lookahead + 1; 0 <= _ref17 ? _i <= _ref17 : _i >= _ref17; i = 0 <= _ref17 ? ++_i : --_i) {
+              _results.push(cc.peek(i).char);
+            }
+            return _results;
+          })()).join("");
+          cc.index = cc.index + lookahead + 1;
           type = 'function';
         }
         ws = 0;
-        while (_ref5 = source[ws], __indexOf.call(WHITESPACE, _ref5) >= 0) {
+        while (_ref17 = source[ws], __indexOf.call(WHITESPACE, _ref17) >= 0) {
           ws += 1;
         }
         source = source.substring(ws);
         if (source[0] === "\n") {
           source = source.substring(1);
           indent = 0;
-          while (_ref6 = source[indent], __indexOf.call(WHITESPACE, _ref6) >= 0) {
+          while (_ref18 = source[indent], __indexOf.call(WHITESPACE, _ref18) >= 0) {
             indent += 1;
           }
           source = ((function() {
-            var _i, _len, _ref7, _results;
-            _ref7 = source.split("\n");
+            var _i, _len, _ref19, _results;
+            _ref19 = source.split("\n");
             _results = [];
-            for (_i = 0, _len = _ref7.length; _i < _len; _i++) {
-              line = _ref7[_i];
+            for (_i = 0, _len = _ref19.length; _i < _len; _i++) {
+              line = _ref19[_i];
               _results.push(line.substr(indent));
             }
             return _results;
@@ -705,50 +725,43 @@ require.define("/lexer.js",function(require,module,exports,__dirname,__filename,
           source: source,
           tracking: {
             start: tracking_start,
-            end: this.char_cursor.at(this.char_index - 1)
+            end: cc.peek(0)
           }
         };
       }
-      if (_ref7 = this.input[this.char_index], __indexOf.call(OPERATORS, _ref7) >= 0) {
-        while (_ref8 = (c = this.input[this.char_index]), __indexOf.call(OPERATORS, _ref8) >= 0) {
-          buffer += c;
-          this.char_index += 1;
+      if (_ref19 = cc.peek().char, __indexOf.call(OPERATORS, _ref19) >= 0) {
+        while (_ref20 = (_ref21 = cc.peek()) != null ? _ref21.char : void 0, __indexOf.call(OPERATORS, _ref20) >= 0) {
+          buffer += cc.next().char;
         }
         return {
           type: "operator",
           token: buffer,
           tracking: {
             start: tracking_start,
-            end: this.char_cursor.at(this.char_index - 1)
+            end: cc.peek(0)
           }
         };
       }
-      if (/([a-zA-Z_@])/.test(this.input[this.char_index])) {
-        c = this.input[this.char_index];
-        while (true) {
-          buffer += c;
-          this.char_index += 1;
-          if (!((c = this.input[this.char_index]) && /([a-zA-Z0-9_])/.test(c))) {
-            break;
-          }
+      if (/([a-zA-Z_@])/.test(cc.peek().char)) {
+        buffer = cc.next().char;
+        while ((cc.peek() != null) && /([a-zA-Z0-9_])/.test(cc.peek().char)) {
+          buffer += cc.next().char;
         }
         return {
           type: "symbol",
           token: buffer,
           tracking: {
             start: tracking_start,
-            end: this.char_cursor.at(this.char_index - 1)
+            end: cc.peek(0)
           }
         };
       }
-      if (/([0-9])/.test(this.input[this.char_index])) {
-        while ((c = this.input[this.char_index]) && /([0-9]|\.|\,)/.test(c)) {
-          buffer += c;
-          this.char_index += 1;
+      if (/([0-9])/.test(cc.peek().char)) {
+        while ((cc.peek() != null) && /([0-9]|\.|\,)/.test(cc.peek().char)) {
+          buffer += cc.next().char;
         }
-        if (this.input[this.char_index - 1] === ',') {
+        if (((_ref22 = cc.prev(0)) != null ? _ref22.char : void 0) === ',') {
           buffer = buffer.substr(0, buffer.length - 1);
-          this.char_index -= 1;
         }
         return {
           type: "number",
@@ -756,50 +769,45 @@ require.define("/lexer.js",function(require,module,exports,__dirname,__filename,
           value: parseFloat(buffer.replace(",", "")),
           tracking: {
             start: tracking_start,
-            end: this.char_cursor.at(this.char_index - 1)
+            end: cc.peek(0)
           }
         };
       }
-      if ((_ref9 = this.input[this.char_index]) === "'" || _ref9 === '"') {
-        boundary = this.input[this.char_index];
-        this.char_index += 1;
-        while ((c = this.input[this.char_index]) !== boundary) {
-          buffer += c;
-          this.char_index += 1;
-          if ((c = this.input[this.char_index]) === "\\") {
-            buffer += c;
-            this.char_index += 1;
-            buffer += c;
-            this.char_index += 1;
+      if ((_ref23 = cc.peek().char) === "'" || _ref23 === '"') {
+        boundary = cc.next().char;
+        while ((cc.peek() != null) && ((_ref25 = cc.peek()) != null ? _ref25.char : void 0) !== boundary) {
+          buffer += cc.next().char;
+          if (((_ref24 = cc.peek()) != null ? _ref24.char : void 0) === "\\") {
+            buffer += cc.next().char;
+            buffer += cc.next().char;
           }
         }
-        if (this.input[this.char_index] === boundary) {
-          this.char_index += 1;
+        if (((_ref26 = cc.next()) != null ? _ref26.char : void 0) === boundary) {
           return {
             type: "string",
-            token: boundary + buffer + boundary,
+            token: "" + boundary + buffer + boundary,
             value: buffer,
             tracking: {
               start: tracking_start,
-              end: this.char_cursor.at(this.char_index - 1)
+              end: cc.peek(0)
             }
           };
         } else {
           throw new SyntaxError("Unterminated String");
         }
       }
-      if (this.input[this.char_index] === "\n") {
-        this.char_index += 1;
+      if (cc.peek().char === "\n") {
+        cc.next();
         return {
           type: 'linefeed',
           token: "\n",
           tracking: {
             start: tracking_start,
-            end: this.char_cursor.at(this.char_index - 1)
+            end: cc.peek(0)
           }
         };
       }
-      throw new SyntaxError("Unknown token: " + this.input[this.char_index]);
+      throw new SyntaxError("Unknown token: " + (cc.peek()));
     };
 
     return Lexer;
@@ -827,7 +835,7 @@ require.define("/cursor.js",function(require,module,exports,__dirname,__filename
       this.next = __bind(this.next, this);
 
       this.all = __bind(this.all, this);
-      this.index = -1;
+      this.index = 0;
     }
 
     Cursor.prototype.all = function() {
@@ -843,28 +851,28 @@ require.define("/cursor.js",function(require,module,exports,__dirname,__filename
       if (i == null) {
         i = 1;
       }
-      return this.at(this.index += i);
+      return this.at((this.index += i) - 1);
     };
 
     Cursor.prototype.back = function(i) {
       if (i == null) {
         i = 1;
       }
-      return this.at(this.index -= i);
+      return this.at((this.index -= i) - 1);
     };
 
     Cursor.prototype.peek = function(i) {
       if (i == null) {
         i = 1;
       }
-      return this.at(this.index + i);
+      return this.at((this.index + i) - 1);
     };
 
     Cursor.prototype.prev = function(i) {
       if (i == null) {
         i = 1;
       }
-      return this.at(this.index - i);
+      return this.at((this.index - i) - 1);
     };
 
     return Cursor;
@@ -1047,7 +1055,7 @@ require.define("/Cursor.js",function(require,module,exports,__dirname,__filename
       this.next = __bind(this.next, this);
 
       this.all = __bind(this.all, this);
-      this.index = -1;
+      this.index = 0;
     }
 
     Cursor.prototype.all = function() {
@@ -1063,28 +1071,28 @@ require.define("/Cursor.js",function(require,module,exports,__dirname,__filename
       if (i == null) {
         i = 1;
       }
-      return this.at(this.index += i);
+      return this.at((this.index += i) - 1);
     };
 
     Cursor.prototype.back = function(i) {
       if (i == null) {
         i = 1;
       }
-      return this.at(this.index -= i);
+      return this.at((this.index -= i) - 1);
     };
 
     Cursor.prototype.peek = function(i) {
       if (i == null) {
         i = 1;
       }
-      return this.at(this.index + i);
+      return this.at((this.index + i) - 1);
     };
 
     Cursor.prototype.prev = function(i) {
       if (i == null) {
         i = 1;
       }
-      return this.at(this.index - i);
+      return this.at((this.index - i) - 1);
     };
 
     return Cursor;
