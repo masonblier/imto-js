@@ -11,6 +11,7 @@ class CharCursor extends Cursor
   constructor: (@input) ->
     super()
     @input = @input.replace("\r","")
+    @length = @input.length
     @lines = @input.split("\n")
     @line_ends = []
     @indents = []
@@ -52,14 +53,16 @@ module.exports = class Lexer extends Cursor
   @CharCursor: CharCursor
 
   # constructor
-  constructor: (@input) ->
+  constructor: (input) ->
     super()
-    @char_index = 0
     @memo_index = -1
     @memos = []
     @linestart = true
     @indent = 0
-    @char_cursor = new CharCursor(@input)
+    @char_cursor = new CharCursor(input)
+    # skip starter newlines
+    while @char_cursor.peek().char == "\n"
+      @char_cursor.next()
 
   # at
   at: (req_index) =>
@@ -73,54 +76,66 @@ module.exports = class Lexer extends Cursor
   # next_token
   next_token: () =>
     buffer = ''
-    tracking_start = @char_cursor.at(@char_index)
+    cc = @char_cursor
+
+    # skip blank line
+    ws = 1
+    while cc.peek(ws)?.char in WHITESPACE
+      ws += 1
+    if ws > 1 and cc.peek(ws)?.char == "\n"
+      cc.next(ws)
+
+    # skip double newlines
+    while cc.peek()?.char == "\n" and cc.peek(2)?.char == "\n"
+      cc.next()
+    # skip newlines with indents after them
+    while cc.peek()?.char == "\n" and cc.indent(cc.index+1) > @indent
+      cc.next()
+
+    tracking_start = cc.peek()
 
     # match indentation block
-    if @char_cursor.indent(@char_index) > @indent && @input[@char_index] != "\n"
-      indent = @char_cursor.indent(@char_index)
-      while @char_index < @input.length and (@char_cursor.indent(@char_index) > @indent)
-        buffer += @input[@char_index]
-        @char_index++
-      if @input[@char_index-1] == "\n"
-        @char_index--
+    if cc.indent(cc.index) > @indent && cc.peek()?.char != "\n"
+      indent = cc.indent(cc.index)
+      while cc.index < cc.length and (cc.indent(cc.index) > @indent)
+        buffer += cc.next().char
+      if cc.prev(0)?.char == "\n"
+        cc.back()
         buffer = buffer.substr(0,buffer.length-1)
-      source = (line.substr(indent) for line in buffer.split("\n")).join("\n")
+      source = (line.substr(indent) for line in buffer.split("\n")).join("\n")      
       return { 
         type: 'block', 
         token: buffer, 
         source: source, 
-        tracking: { start: tracking_start, end: @char_cursor.at(@char_index-1) } 
+        tracking: { start: tracking_start, end: cc.peek(0) } 
       }
 
-    while @input[@char_index] in WHITESPACE
-      @char_index += 1
-    return null if @char_index >= @input.length
-    tracking_start = @char_cursor.at(@char_index)
+    while cc.peek()?.char in WHITESPACE
+      cc.next()
+    return null unless cc.index < cc.length
+    tracking_start = cc.peek()
 
     # match bracketted block
-    if @input[@char_index] in ["{", "[", "("]
-
+    if cc.peek().char in ["{", "[", "("]
       stack = 1
-      buffer = @input[@char_index]
-      @char_index += 1
+      buffer = cc.next().char
       type = 'block'
 
-      while stack > 0 and @char_index < @input.length
-        stack -= 1 if @input[@char_index] in ["}","]",")"]  
-        stack += 1 if @input[@char_index] in ["{", "[", "("]
-        buffer += @input[@char_index]
-        @char_index += 1
+      while stack > 0 and cc.index < cc.length
+        stack -= 1 if cc.peek().char in ["}","]",")"]  
+        stack += 1 if cc.peek().char in ["{", "[", "("]
+        buffer += cc.next().char
       throw new SyntaxError("Unbalanced Parenthesis") if stack > 0
       # start parsing out source: 
       source = buffer.substring(1, buffer.length-1)
       # scan past last bracket, skipping whitespace
-      lookahead = 0
-      while @input[@char_index+lookahead] in WHITESPACE
+      lookahead = 1
+      while cc.peek(lookahead)?.char in WHITESPACE
         lookahead += 1
       # if -> found, it's a function signature
-      if @input[@char_index+lookahead] == "-" and @input[@char_index+lookahead+1] == ">"
-        buffer += @input.substr(@char_index, lookahead+2)
-        @char_index = @char_index+lookahead+2
+      if cc.peek(lookahead)?.char == "-" and cc.peek(lookahead+1)?.char == ">"
+        buffer += (cc.peek(i).char for i in [0..lookahead+1]).join("")
+        cc.index = cc.index+lookahead+1
         type = 'function'
       # 1) trim whitespace
       ws = 0
@@ -133,75 +148,65 @@ module.exports = class Lexer extends Cursor
         indent = 0
         while source[indent] in WHITESPACE
           indent += 1
-        source = (line.substr(indent) for line in source.split("\n")).join("\n")
+        source = (line.substr(indent) for line in source.split("\n")).join("\n")      
       return { 
         type: type, 
         token: buffer, 
         source: source, 
-        tracking: { start: tracking_start, end: @char_cursor.at(@char_index-1) } 
+        tracking: { start: tracking_start, end: cc.peek(0) } 
       }
 
     # match OPERATORS
-    if @input[@char_index] in OPERATORS
-      while (c = @input[@char_index]) in OPERATORS
-        buffer += c
-        @char_index += 1
+    if cc.peek().char in OPERATORS
+      while cc.peek()?.char in OPERATORS
+        buffer += cc.next().char      
       return { 
         type: "operator", token: buffer, 
-        tracking: { start: tracking_start, end: @char_cursor.at(@char_index-1) } 
+        tracking: { start: tracking_start, end: cc.peek(0) } 
       }
 
     # match SYMBOL
-    if /([a-zA-Z_@])/.test @input[@char_index]
-      c = @input[@char_index]
-      loop
-        buffer += c
-        @char_index += 1
-        break unless (c = @input[@char_index]) and /([a-zA-Z0-9_])/.test c
+    if /([a-zA-Z_@])/.test cc.peek().char
+      buffer = cc.next().char
+      while cc.peek()? and /([a-zA-Z0-9_])/.test cc.peek().char
+        buffer += cc.next().char      
       return {
         type: "symbol", token: buffer,
-        tracking: { start: tracking_start, end: @char_cursor.at(@char_index-1) } 
+        tracking: { start: tracking_start, end: cc.peek(0) } 
       }
 
     # match NUMBER
-    if /([0-9])/.test @input[@char_index]
-      while (c = @input[@char_index]) and /([0-9]|\.|\,)/.test c
-        buffer += c
-        @char_index += 1
-      if @input[@char_index-1] == ',' # toss back last commas
-        buffer = buffer.substr(0,buffer.length-1)
-        @char_index -= 1
+    if /([0-9])/.test cc.peek().char
+      while cc.peek()? and /([0-9]|\.|\,)/.test cc.peek().char
+        buffer += cc.next().char
+      if cc.prev(0)?.char == ',' # toss back last commas
+        buffer = buffer.substr(0,buffer.length-1)      
       return {
         type: "number", token: buffer, value: parseFloat(buffer.replace(",","")),
-        tracking: { start: tracking_start, end: @char_cursor.at(@char_index-1) } 
+        tracking: { start: tracking_start, end: cc.peek(0) } 
       }
 
     # match STRINGS
-    if @input[@char_index] in ["'",'"']
-      boundary = @input[@char_index]
-      @char_index += 1
-      while (c = @input[@char_index]) != boundary
-        buffer += c
-        @char_index += 1
-        if (c = @input[@char_index]) == "\\" # read chars after \ regardless
-          buffer += c
-          @char_index += 1
-          buffer += c
-          @char_index += 1
-      if @input[@char_index] == boundary
-        @char_index += 1
+    if cc.peek().char in ["'",'"']
+      boundary = cc.next().char
+      while cc.peek()? and cc.peek()?.char != boundary
+        buffer += cc.next().char
+        if (cc.peek()?.char) == "\\" # read chars after \ regardless
+          buffer += cc.next().char
+          buffer += cc.next().char
+      if cc.next()?.char == boundary
         return {
-          type: "string", token: boundary+buffer+boundary, value: buffer,
-          tracking: { start: tracking_start, end: @char_cursor.at(@char_index-1) } }
+          type: "string", token: "#{boundary}#{buffer}#{boundary}", value: buffer,
+          tracking: { start: tracking_start, end: cc.peek(0) } }
       else
         throw new SyntaxError("Unterminated String")
 
     # match LINEFEED
-    if @input[@char_index] == "\n"
-      @char_index += 1
+    if cc.peek().char == "\n"
+      cc.next()
       return {
         type: 'linefeed', token: "\n",
-        tracking: { start: tracking_start, end: @char_cursor.at(@char_index-1) } 
+        tracking: { start: tracking_start, end: cc.peek(0) } 
       }
 
-    throw new SyntaxError("Unknown token: #{@input[@char_index]}")
+    throw new SyntaxError("Unknown token: #{cc.peek()}")

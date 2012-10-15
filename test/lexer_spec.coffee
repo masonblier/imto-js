@@ -70,9 +70,6 @@ describe 'lexer', ->
       node = cursor.next()
       node.value.should.eql "this is"
 
-      # line feed
-      node = cursor.next()
-      node.token.should.eql '\n'
       # the block
       node = cursor.next()
       node.type.should.eql 'block'
@@ -107,8 +104,6 @@ describe 'lexer', ->
     node = cursor.next()
     node.token.should.eql '='
     node.type.should.eql 'operator'
-    node = cursor.next()
-    node.type.should.eql 'linefeed'
     # block and indentation test
     node = cursor.next()
     node.type.should.eql 'block'
@@ -117,9 +112,9 @@ describe 'lexer', ->
     block.should.match /^@this_method/m
     block.should.match /^  return/m
     block.should.match /^@$/m
-    node = cursor.next()
-    node.type.should.eql 'linefeed'
     # last line
+    node = cursor.next()
+    node.type.should.eql "linefeed"
     node = cursor.next()
     node.token.should.eql 'myObj'
     node.type.should.eql 'symbol'
@@ -136,6 +131,7 @@ describe 'lexer', ->
     node = cursor.next() # =
     node = cursor.next() # 'myValue'
     node = cursor.next() # \n
+    node.type.should.eql 'linefeed'
     node = cursor.next() # @this_method
     node.token.should.eql '@this_method'
     node.type.should.eql 'symbol'
@@ -143,7 +139,6 @@ describe 'lexer', ->
     node = cursor.next() # () ->
     node.type.should.eql 'function'
     node.source.should.eql ''
-    node = cursor.next() # linefeed
     node = cursor.next() # block
     node.type.should.eql 'block'
     node = cursor.next() # \n
@@ -161,5 +156,12 @@ describe 'lexer', ->
     node = cursor.next()
     (node == null).should.eql true
 
-
-
+  it 'can parse through newlines in a block', ->
+    cursor = lex("\nmyObj = \n\n  \"this is only a test\"\n")
+    node = cursor.next()
+    node.token.should.eql 'myObj'
+    node = cursor.next()
+    node.type.should.eql 'operator'
+    node = cursor.next()
+    node.type.should.eql 'block'
+    node.source.should.eql "\"this is only a test\""
