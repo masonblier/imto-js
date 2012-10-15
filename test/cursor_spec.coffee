@@ -1,8 +1,8 @@
-redl = require('../src/redl')
+imto = require('../src')
 
 describe 'cursor', ->
     beforeEach ->
-      @cursor = (new redl.Lexer("one two three four"))
+      @cursor = (new imto.Lexer("one two three four"))
 
     it 'should get the #next', ->
       @cursor.next().token.should.eql 'one'

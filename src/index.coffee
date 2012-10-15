@@ -1,4 +1,4 @@
-# Redl Main include
+# imto-js Main include
 
 module.exports =
   Interpreter: require './interpreter'

@@ -1,5 +1,5 @@
 # Main include for browser
 
-window.redl =
+window.imto =
   Interpreter: require './interpreter'
   Lexer:       require './lexer'

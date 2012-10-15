@@ -1,7 +1,7 @@
 {
-  "name": "redl.js",
-  "description": "Redl language interpreter",
-  "version": "0.1.0",
+  "name": "imto-js",
+  "description": "imto language interpreter",
+  "version": "0.1.3",
   "author": "Mason Blier <mason.blier@gmail.com>",
   "contributors": [ 
     { "name": "Mason Blier", "email": "mason.blier@gmail.com>" }
@@ -15,8 +15,8 @@
     "sinon": "*",
     "sinon-chai": "*"
   },
-  "keywords": ["redl"],
-  "bin": { "redl": "./bin/redl-js" },
+  "keywords": ["imto"],
+  "bin": { "imto": "./bin/imto-js" },
   "scripts": {
     "test": "make test"
   },

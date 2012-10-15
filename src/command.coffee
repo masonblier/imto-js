@@ -5,13 +5,13 @@
 stdin = process.openStdin()
 stdout = process.stdout
 
-redl         = require './redl'
+imto         = require './index'
 readline     = require 'readline'
 {inspect}    = require 'util'
 {Script}     = require 'vm'
 Module       = require 'module'
 
-REPL_PROMPT = 'redl> '
+REPL_PROMPT = 'imto> '
 REPL_PROMPT_MULTILINE = '----> '
 REPL_PROMPT_CONTINUATION = '....> '
 enableColours = no
@@ -26,7 +26,7 @@ process.on 'uncaughtException', error
 backlog = ''
 
 # Our interpreter for the session
-interpreter = new redl.Interpreter()
+interpreter = new imto.Interpreter()
 
 # The main REPL function. run is called every time 
 # a line of code is entered. Attempt to evaluate the command. 

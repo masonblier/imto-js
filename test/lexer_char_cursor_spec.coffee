@@ -1,6 +1,6 @@
-redl = require('../src/redl')
+imto = require('../src')
 
-make_cursor = (str) -> new redl.Lexer.CharCursor(str)
+make_cursor = (str) -> new imto.Lexer.CharCursor(str)
 
 describe 'Lexer.CharCursor', ->  
 

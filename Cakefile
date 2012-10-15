@@ -10,13 +10,13 @@ run_proc = (command, args, callback) ->
   child.stdout.on 'data', (data) ->
     process.stdout.write data.toString()
   child.on 'exit', (code) ->
-    callback?() if code is 0
+    callback() if code is 0 and callback?
 
 compile_cs = (callback) ->
-  run_proc './node_modules/.bin/coffee', ['-c', '-o', 'lib', 'src'], callback?()
+  run_proc './node_modules/.bin/coffee', ['-c', '-o', 'lib', 'src'], callback
 
 browserify = (callback) ->
-  run_proc './node_modules/.bin/browserify', ['-o','public/redl.js','lib/browser.js'], callback?()
+  run_proc './node_modules/.bin/browserify', ['-o','public/imto.js','lib/browser.js'], callback
 
 build = () ->
   compile_cs browserify

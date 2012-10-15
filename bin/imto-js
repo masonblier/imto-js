@@ -6,8 +6,8 @@ lib  = path.join(path.dirname(fs.realpathSync(__filename)), '../src')
 {inspect} = require 'util'
 
 if process.argv.length > 2 and process.argv[process.argv.length-1].charAt(0) != "-"
-  redl = require(lib + '/redl')
-  interpreter = new redl.Interpreter()
+  imto = require(lib)
+  interpreter = new imto.Interpreter()
   fn = interpreter[if "-L" in process.argv then "lex" else "parse"]
   buffer = fs.readFileSync(process.argv[process.argv.length-1], "utf8")
   process.stdout.write "#{interpreter.print(fn buffer)}\n"

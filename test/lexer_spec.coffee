@@ -1,6 +1,6 @@
-redl = require('../src/redl')
+imto = require('../src')
 
-lex = (str) -> new redl.Lexer(str)
+lex = (str) -> new imto.Lexer(str)
 
 describe 'lexer', ->  
   count = -1

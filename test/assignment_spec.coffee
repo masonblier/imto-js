@@ -1,11 +1,11 @@
-redl = require('../')
+imto = require('../')
 
 describe 'interpreter', ->
 
   interpreter = null
 
   beforeEach ->
-    interpreter = new redl.Interpreter()
+    interpreter = new imto.Interpreter()
 
   describe 'assignment operations', ->
 

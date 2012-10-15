@@ -1,7 +1,7 @@
-redl = require('../src/redl')
+imto = require('../src')
 
-lex = (str) -> new redl.Interpreter().lex(str)
-parse = (str) -> new redl.Interpreter().parse(str)
+lex = (str) -> new imto.Interpreter().lex(str)
+parse = (str) -> new imto.Interpreter().parse(str)
 
 describe 'lexer', ->
 

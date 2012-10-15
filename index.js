@@ -1,1 +1,1 @@
-module.exports = require('./lib/redl');
+module.exports = require('./lib');

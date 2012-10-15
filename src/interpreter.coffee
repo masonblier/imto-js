@@ -1,9 +1,9 @@
 # Interpreter
 
-clc = require('cli-color')
-  # green: (a) -> a
-  # blue:  (a) -> a
-  # red:   (a) -> a
+clc = #require('cli-color')
+  green: (a) -> a
+  blue:  (a) -> a
+  red:   (a) -> a
 
 Context = require('./context')
 Lexer = require('./lexer')
