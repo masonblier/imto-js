@@ -43,6 +43,12 @@ describe 'lexer', ->
       sig.source.should.eql 'a , b '
       sig.type.should.eql 'function'
 
+    it 'double arrow function', ->
+      cursor = lex("() => ")
+      sig = cursor.next()
+      sig.source.should.eql ""
+      sig.type.should.eql 'function'
+
     it 'block :: curly bracket delimited', ->
       cursor = lex("symb { this_is_a_block } 'post block'")
       # random other tokens so that we're not always trying a clean slate

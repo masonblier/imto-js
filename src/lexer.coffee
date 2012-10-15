@@ -133,7 +133,7 @@ module.exports = class Lexer extends Cursor
       while cc.peek(lookahead)?.char in WHITESPACE
         lookahead += 1
       # if -> found, it's a function signature
-      if cc.peek(lookahead)?.char == "-" and cc.peek(lookahead+1)?.char == ">"
+      if (cc.peek(lookahead)?.char == "-" or "=") and cc.peek(lookahead+1)?.char == ">"
         buffer += (cc.peek(i).char for i in [0..lookahead+1]).join("")
         cc.index = cc.index+lookahead+1
         type = 'function'
