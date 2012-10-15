@@ -1,65 +1,78 @@
 # Parser
 
 Lexer = require './lexer'
+Cursor = require './Cursor'
 
 # wrapped in a function to give private instance scope
-Parser = (lexer) ->
-  class ParserClass
-    constructor: (@cursor) ->
-      
-    all: () ->
-      while n = @next()
-        n
-    next: () ->
-      subject = @cursor.next()
-      subject = @cursor.next() while subject?.type is "linefeed"
-      @expr(subject)
+module.exports = class Parser extends Cursor
+  constructor: (@lexer) ->
+    super()
+    @memo_index = -1
+    @memos = []
 
-    expr: (subject) ->
-      @block(subject) or 
-      @function(subject) or
-      @parenclosure(subject) or
-      @assignment(subject) or 
-      subject
+  # at
+  at: (req_index) =>
+    # it follows the lexer sequentially, 
+    # memoizing to provide back functionality
+    while @memo_index < req_index
+      unless @memos[@memo_index+=1]
+        @memos[@memo_index] = @statement()
+    @memos[req_index]
 
-    parenclosure: (subject) ->
-      if subject?.token is "("
-        inner = @expr(@cursor.next())
-        if @cursor.peek()?.token is ")"
-          @cursor.next()
-          return inner
-        else
-          throw new Error "Invalid syntax"
+  statement: () =>
+    subject = @lexer.next()
+    subject = @lexer.next() while subject?.type is "linefeed"
+    @expr(subject)
 
-    block: (subject) ->
-      if subject?.type is "block"
-        return {type: "block", tree: Parser(Lexer(subject.source).cursor()).all()}
-      if subject?.type is "linefeed"
-        if @cursor.peek()?.type is "block"
-          n = @cursor.next()
-          return {type: "block", tree: Parser(Lexer(n.source).cursor()).all()}
+  expr: (subject) =>
+    @block(subject) or 
+    @function(subject) or
+    @assignment(subject) or 
+    subject
 
-    function: (subject) ->
-      if subject?.type is "function"
-        return {type: "function", body: @expr(@cursor.next())}
+  block: (subject) =>
+    if subject?.type is "block"
+      return { 
+        type: "block", source: subject.source,
+        tracking: { start: subject.tracking.start, end: subject.tracking.end }
+      }
+    if subject?.type is "linefeed"
+      if @lexer.peek()?.type is "block"
+        n = @lexer.next()
+        return {
+          type: "block", source: n.source,
+          tracking: { start: subject.tracking.start, end: n.tracking.end }
+        }
 
-    assignment: (subject) ->
-      @property_assignment(subject) or
-      @local_assignment(subject)
+  function: (subject) =>
+    if subject?.type is "function"
+      node = @expr(@lexer.next())
+      return {
+        type: "function", body: node,
+        tracking: { start: subject.tracking.start, end: node.tracking.end }
+      }
 
-    property_assignment: (subject) ->
-      if subject?.type is "symbol"
-        n = @cursor.peek()
-        if n?.token is ":"
-          return {type: "property_assignment", symbol: subject.token, value: @expr(@cursor.next(2))}
-      return null
+  assignment: (subject) =>
+    @property_assignment(subject) or
+    @local_assignment(subject)
 
-    local_assignment: (subject) ->
-      if subject?.type is "symbol"
-        n = @cursor.peek()
-        if n?.token is "="
-          return {type: "assignment", symbol: subject.token, value: @expr(@cursor.next(2))}
+  property_assignment: (subject) =>
+    if subject?.type is "symbol"
+      n = @lexer.peek()
+      if n?.token is ":"
+        node = @expr(@lexer.next(2))
+        return {
+          type: "property_assignment", symbol: subject.token, value: node,
+          tracking: { start: subject.tracking.start, end: node.tracking.end }
+        }
+    return null
 
-  return new ParserClass(lexer)
-
-module.exports = Parser
+  local_assignment: (subject) =>
+    if subject?.type is "symbol"
+      n = @lexer.peek()
+      if n?.token is "="
+        node = @expr(@lexer.next(2))
+        return {
+          type: "assignment", symbol: subject.token, value: node,
+          tracking: { start: subject.tracking.start, end: node.tracking.end }
+        }

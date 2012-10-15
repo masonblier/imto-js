@@ -15,10 +15,10 @@ class Interpreter
 
   lex: (code) ->
     # make lexer
-    (new Lexer(code)).cursor().all()
+    (new Lexer(code))
 
   parse: (code) ->
-    Parser((new Lexer(code)).cursor()).all()
+    (new Parser(new Lexer(code)))
 
   eval: (code) ->
     @context.myvar = "1"

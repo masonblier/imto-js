@@ -3,18 +3,21 @@ redl = require('../src/redl')
 lex = (str) -> new redl.Lexer(str)
 
 describe 'lexer', ->  
+  count = -1
+
+  beforeEach ->
 
   describe 'token types', ->
 
     it 'symbols', ->
-      cursor = lex("this_is_a_token ").cursor()
+      cursor = lex("this_is_a_token ")
 
       node = cursor.next()
       node.token.should.eql 'this_is_a_token'
       node.type.should.eql 'symbol'
 
     it 'number and string', ->
-      cursor = lex("2.0 'hi'").cursor()
+      cursor = lex("2.0 'hi'")
 
       first = cursor.next()
       first.token.should.eql '2.0'
@@ -27,23 +30,21 @@ describe 'lexer', ->
       second.value.should.eql 'hi'
 
     it 'operators', ->
-      tests = ['+=', '%', '(', ')']
-      cursor = lex(tests.join ' ').cursor()
+      tests = ['+=', '%', '/', '&=', '.']
+      cursor = lex(tests.join ' ')
       for op in tests
         next = cursor.next()
         next.token.should.eql op
         next.type.should.eql 'operator'
 
     it 'function signature', ->
-      cursor = lex("( a , b )   ->  ").cursor()
+      cursor = lex("( a , b )   ->  ")
       sig = cursor.next()
-      sig.paramList.should.have.length(2)
-      sig.paramList.should.include 'a'
-      sig.paramList[1].should.eql 'b'
+      sig.source.should.eql 'a , b '
       sig.type.should.eql 'function'
 
     it 'block :: curly bracket delimited', ->
-      cursor = lex("symb { this_is_a_block } 'post block'").cursor()
+      cursor = lex("symb { this_is_a_block } 'post block'")
       # random other tokens so that we're not always trying a clean slate
       node = cursor.next()
       node.type.should.eql 'symbol'
@@ -57,17 +58,14 @@ describe 'lexer', ->
       node.type.should.eql 'string'
 
     it 'bracketted indent formatter test', ->
-      console.log "a"
-      cursor = lex("{   \n  this is\n    an indent\n  test\n}").cursor()
-      console.log "b"
+      cursor = lex("{   \n  this is\n    an indent\n  test\n}")
       node = cursor.next()
-      console.log "c"
       node.source.should.match /^this is/
       node.source.should.match /^  an indent/m
       node.type.should.eql 'block'
 
     it 'block :: indentation delimited', ->
-      cursor = lex("'this is'\n  a 'block'\n  that.should 'get all of this'\nbut not this\n").cursor()
+      cursor = lex("'this is'\n  a 'block'\n  that.should 'get all of this'\nbut not this\n")
       # first line
       node = cursor.next()
       node.value.should.eql "this is"
@@ -101,7 +99,7 @@ describe 'lexer', ->
               @
             myObj.this_method
             '''
-    cursor = lex(input).cursor()
+    cursor = lex(input)
     # first line
     node = cursor.next()
     node.token.should.eql 'myObj'
@@ -123,11 +121,16 @@ describe 'lexer', ->
     node.type.should.eql 'linefeed'
     # last line
     node = cursor.next()
-    node.token.should.eql 'myObj.this_method'
+    node.token.should.eql 'myObj'
     node.type.should.eql 'symbol'
-
+    node = cursor.next()
+    node.token.should.eql '.'
+    node.type.should.eql 'operator'
+    node = cursor.next()
+    node.token.should.eql 'this_method'
+    node.type.should.eql 'symbol'
     # test the block
-    cursor = lex(block).cursor()
+    cursor = lex(block)
     node = cursor.next()
     node.token.should.eql 'this_var'
     node = cursor.next() # =
@@ -139,7 +142,7 @@ describe 'lexer', ->
     node = cursor.next() # =
     node = cursor.next() # () ->
     node.type.should.eql 'function'
-    node.paramList.should.have.length 0
+    node.source.should.eql ''
     node = cursor.next() # linefeed
     node = cursor.next() # block
     node.type.should.eql 'block'
@@ -150,14 +153,13 @@ describe 'lexer', ->
     node.type.should.eql 'symbol'
 
   it 'isolate parenthesis lexer bug', ->
-    cursor = lex("( 2) ").cursor()
+    cursor = lex("( 2) ")
     node = cursor.next()
-    node.token.should.eql '('
+    node.token.should.eql '( 2)'
+    node.source.should.eql '2'
+    node.type.should.eql 'block'
     node = cursor.next()
-    node.type.should.eql 'number'
-    node.token.should.eql '2'
-    node = cursor.next()
-    node.token.should.eql ')'
+    (node == null).should.eql true
 
 
 

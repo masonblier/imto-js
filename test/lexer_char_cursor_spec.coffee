@@ -22,16 +22,7 @@ describe 'Lexer.CharCursor', ->
     cursor.at(13).should.eql column: 5, line: 1, char: "t"
     (cursor.at(14) == undefined).should.eql true
 
-  it 'tracks indent level', ->
-    cursor = make_cursor("this is\n  a test\n  for\nindenting")
-    cursor.at( 0).should.eql column: 0, line: 0, char: "t"
-    cursor.at( 8).should.eql column: 0, line: 1, char: " "
-    cursor.at(10).should.eql column: 2, line: 1, char: "a"
-    cursor.at(17).should.eql column: 0, line: 2, char: " "
-    cursor.at(23).should.eql column: 0, line: 3, char: "i"
-    cursor.at(26).should.eql column: 3, line: 3, char: "e"
-
-  it 'can give indentation level of a line', ->
+  it 'can give indentation level of an index', ->
     cursor = make_cursor("this is\n  a test\n  for\n    my\nindenting")
     cursor.indent(0).should.eql 0
     cursor.indent(8).should.eql 2

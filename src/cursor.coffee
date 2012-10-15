@@ -2,8 +2,8 @@
 
 class Cursor
   # constructor
-  constructor: (@subject) ->
-    @idx = -1
+  constructor: () ->
+    @index = -1
     
   # all tokens
   all: () =>
@@ -12,18 +12,18 @@ class Cursor
 
   # next (memoized)
   next: (i=1) =>
-    @subject.at(@idx += i)
+    @at(@index += i)
 
   # back up a token
   back: (i=1) =>
-    @subject.at(@idx -= i)
+    @at(@index -= i)
 
   # peak ahead
   peek: (i=1) =>
-    @subject.at(@idx + i)
+    @at(@index + i)
 
   # peak behind
   prev: (i=1) =>
-    @subject.at(@idx - i)
+    @at(@index - i)
 
 module.exports = Cursor
