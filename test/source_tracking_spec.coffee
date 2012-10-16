@@ -41,12 +41,18 @@ describe "source tracking", ->
 
       subast = parse(ast.at(0).value.value.body.source)
       subast.peek().tracking.start.should.eql {line: 0, column: 0, char: "c" }
-      subast.next().tracking.end.should.eql   {line: 0, column: 4, char: "n" }
-      subast.peek().tracking.start.should.eql {line: 0, column: 5, char: "[" }
       subast.next().tracking.end.should.eql   {line: 0, column: 20, char: "]" }
-
       subast.peek().tracking.start.should.eql {line: 0, column: 21, char: "(" }
       subast.next().tracking.end.should.eql   {line: 0, column: 22, char: ")" }
-
-      subast.next().tracking.start.should.eql {line: 1, column: 0, char: "i" }
+      
+      subast.peek().tracking.start.should.eql {line: 1, column: 0, char: "i" }
       subast.next().tracking.end.should.eql   {line: 1, column: 2, char: "+" }
+
+  it "tracks execute statement", ->
+    node = parse("a b").next()
+    node.type.should.eql 'execute'
+    node.tracking.start.should.eql { line: 0, column: 0, char: 'a'}
+    node.tracking.end.should.eql { line: 0, column: 2, char: 'b'}
+    node.params[0].symbol.should.eql 'b'
+    node.params[0].tracking.start.should.eql { line: 0, column: 2, char: 'b'}
+    node.params[0].tracking.end.should.eql { line: 0, column: 2, char: 'b'}

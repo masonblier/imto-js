@@ -28,10 +28,13 @@ module.exports = class Parser extends Cursor
     @expr(subject)
 
   expr: (subject) =>
-    @block(subject) or 
-    @function(subject) or
-    @assignment(subject) or 
-    subject
+    expr =  @block(subject) or 
+            @function(subject) or
+            @assignment(subject) or 
+            @operator(subject) or
+            @execute(subject) or
+            subject
+    expr
 
   block: (subject) =>
     if subject?.type is "block"
@@ -79,3 +82,39 @@ module.exports = class Parser extends Cursor
           type: "assignment", symbol: subject.token, value: node,
           tracking: { start: subject.tracking.start, end: node.tracking.end }
         }
+
+  operator: (subject) =>
+    if subject?.type is "operator"
+      node = @expr(@lexer.next())
+      value = if node then node else undefined
+      return {
+          type: "operator", operator: subject.token, value: value,
+          tracking: { 
+            start: subject.tracking.start, 
+            end: (if node? then node else subject).tracking.end
+          }
+        }
+
+
+  execute: (subject) =>
+    if subject?.type is "symbol"
+      params = []
+      while @lexer.peek()? and @lexer.peek().token != "\n"
+        expr = @expr(@lexer.next())
+        if expr.type is "operator"
+          return {
+            type: "execute", symbol: subject.token, operator: expr.operator, 
+            params: (if expr.value? then [expr.value] else undefined),
+            tracking: { start: subject.tracking.start, end: expr.tracking.end }
+          }
+        else
+          params.push expr
+        break unless @lexer.peek()? and @lexer.peek().token == ","
+        @lexer.next()
+      return {
+        type: 'execute', symbol: subject.token, params: params,
+        tracking: { 
+          start: subject.tracking.start, 
+          end: (if params.length > 0 then params[params.length-1] else subject).tracking.end 
+        }
+      }
