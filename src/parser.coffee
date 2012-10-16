@@ -1,10 +1,44 @@
 # Parser
 
+# requirements
+
 Lexer = require './lexer'
 Parser = require './parser'
 Cursor = require './Cursor'
 
 parse = (str) -> if str? then (new Parser(new Lexer(str))).all() else {}
+
+clc = require('cli-color')
+  # green: (a) -> a
+  # blue:  (a) -> a
+  # red:   (a) -> a
+
+
+# sprint node function
+sprint = (list, indent = "") ->
+  (for node in list
+    head = "#{indent}(#{clc.green(node.type)}"
+    if node.type is "block"
+      "#{head}\n#{sprint(parse(node.source),indent+"  ")}\n#{indent})"
+    else if node.type is "function"
+      "#{head}\n#{sprint([node.body],indent+"  ")}\n#{indent})"
+    else if node.type is "execute"
+      "#{head} #{clc.blue("#{node.symbol}")}#{if node.operator? then " #{node.operator} " else ""}#{if node.params?.length > 0 then "\n#{sprint(node.params,indent+"  ")}\n#{indent}" else ""})" 
+    else if node.type is "assignment" or node.type is "property_assignment"
+      "#{head} #{clc.blue("#{node.symbol}")}\n#{sprint([node.value],indent+"  ")}\n#{indent})" 
+    else if node.type is "literal"
+      "#{head} #{clc.red(node.token)})"
+    else
+      "#{head} '#{node.token}')"
+  ).join "\n"
+
+class ParseNode
+  constructor: (options) ->
+    for own p of options
+      @[p] = options[p]
+  toString: () =>
+    console.log "tostringing ", @
+    sprint [@]
 
 # wrapped in a function to give private instance scope
 module.exports = class Parser extends Cursor
@@ -25,7 +59,10 @@ module.exports = class Parser extends Cursor
   statement: () =>
     subject = @lexer.next()
     subject = @lexer.next() while subject?.type is "linefeed"
-    @expr(subject)
+    if expr = @expr(subject)
+      new ParseNode expr
+    else
+      undefined
 
   expr: (subject) =>
     expr =  @block(subject) or 
@@ -88,13 +125,12 @@ module.exports = class Parser extends Cursor
       node = @expr(@lexer.next())
       value = if node then node else undefined
       return {
-          type: "operator", operator: subject.token, value: value,
-          tracking: { 
-            start: subject.tracking.start, 
-            end: (if node? then node else subject).tracking.end
-          }
+        type: "operator", operator: subject.token, value: value,
+        tracking: { 
+          start: subject.tracking.start, 
+          end: (if node? then node else subject).tracking.end
         }
-
+      }
 
   execute: (subject) =>
     if subject?.type is "symbol"
@@ -112,9 +148,12 @@ module.exports = class Parser extends Cursor
         break unless @lexer.peek()? and @lexer.peek().token == ","
         @lexer.next()
       return {
-        type: 'execute', symbol: subject.token, params: params,
+        type: 'execute'
+        symbol: subject.token
+        params: params
         tracking: { 
           start: subject.tracking.start, 
           end: (if params.length > 0 then params[params.length-1] else subject).tracking.end 
         }
       }
+

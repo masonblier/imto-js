@@ -45,3 +45,20 @@ describe 'parser', ->
     node.operator.should.eql '++'
     (node.value==undefined).should.eql true
     node.symbol.should.eql "a"
+
+  it 'dot operator', ->
+    node = parse("this.is.a.test").next()
+    node.type.should.eql 'execute'
+    node.operator.should.eql '.'
+    node = node.params[0]
+    node.type.should.eql 'execute'
+    node.subject.symbol.should.eql 'is'
+    node = node.params[0]
+    node.type.should.eql 'execute'
+
+  it 'dot operator with expr in it', ->
+    node = parse("(expr).prop").next
+    node.type.should.eql 'execute'
+    node.subject.type.should.eql 'block'
+    node.operator.should.eql "."
+    node.params[0].type.should.eql 'execute'

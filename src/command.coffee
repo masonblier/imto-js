@@ -50,9 +50,10 @@ run = (buffer) ->
   # evaluate
   try
     returnValue = switch mode
-      when 1 then interpreter.lex buffer
+      when 1 then (interpreter.lex buffer).all()
+      when 2 then (interpreter.parse buffer).all()
       else        interpreter.eval buffer
-    repl.output.write "#{inspect returnValue, no, 2, enableColours}\n"
+    repl.output.write "#{returnValue}\n"
   catch err
     error err
 
@@ -64,6 +65,8 @@ mode = 0
 args = process.argv.splice(2)
 if "-L" in args # lex only
   mode = 1 
+if "-P" in args # lex and parse
+  mode = 2
 
 # handle piped input
 if stdin.readable
@@ -80,7 +83,7 @@ if stdin.readable
     lines = pipedInput.split "\n"
     pipedInput = lines[lines.length - 1]
     for line in lines[...-1] when line
-      stdout.write "#{line}\n"
+      # stdout.write "#{line}\n"
       run line
     return
   stdin.on 'end', ->

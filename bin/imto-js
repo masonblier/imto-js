@@ -10,6 +10,6 @@ if process.argv.length > 2 and process.argv[process.argv.length-1].charAt(0) != 
   interpreter = new imto.Interpreter()
   fn = interpreter[if "-L" in process.argv then "lex" else "parse"]
   buffer = fs.readFileSync(process.argv[process.argv.length-1], "utf8")
-  console.log interpreter.print (fn buffer).all()
+  console.log "#{(fn buffer).all().join("\n")}"
 else
   require(lib + '/command')
