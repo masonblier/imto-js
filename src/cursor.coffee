@@ -2,13 +2,18 @@
 
 class Cursor
   # constructor
-  constructor: () ->
+  constructor: (@subject) ->
+    @subject = @ unless @subject
     @index = 0
     
   # all tokens
   all: () =>
     while t = @next()
       t
+
+  # clone
+  clone: () =>
+    return new Cursor @
 
   # next (memoized)
   next: (i=1) =>
