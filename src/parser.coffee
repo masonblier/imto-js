@@ -37,7 +37,6 @@ class ParseNode
     for own p of options
       @[p] = options[p]
   toString: () =>
-    console.log "tostringing ", @
     sprint [@]
 
 # wrapped in a function to give private instance scope

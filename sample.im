@@ -1,0 +1,17 @@
+LinkedList = 
+  new: () =>
+    @head = nil
+    @tail = nil
+    @
+  enqueue: (el) =>
+    @tail.next = 
+      el: el
+    @tail = @tail.next
+  dequeue: () =>
+    node = @head
+    @head = node.next
+    node
+
+
+list = LinkedList.new
+list.enqueue message: "real"
