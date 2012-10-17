@@ -39,7 +39,6 @@ class ParseNode
   toString: () =>
     sprint [@]
 
-# wrapped in a function to give private instance scope
 module.exports = class Parser extends Cursor
   constructor: (@lexer) ->
     super()
@@ -48,8 +47,9 @@ module.exports = class Parser extends Cursor
 
   # at
   at: (req_index) =>
+    # there's no real random access here. 
     # it follows the lexer sequentially, 
-    # memoizing to provide back functionality
+    # memoizing to provide the illution of random access
     while @memo_index < req_index
       unless @memos[@memo_index+=1]
         @memos[@memo_index] = @statement()
