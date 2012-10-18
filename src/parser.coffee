@@ -64,10 +64,26 @@ module.exports = class Parser extends Cursor
       undefined
 
   expr: (subject) =>
+    expr = @tidbit(subject)
+    expr = @operator(expr) or expr
+    expr
+
+  operator: (expr) =>
+    if expr? and @lexer.peek()? and @lexer.peek().type == "operator"
+      operator = @lexer.next()
+      node = @expr(@lexer.next())
+      return { 
+        type: 'operator', left: expr, right: node, operator: operator.token,
+        tracking: { 
+          start: expr.tracking.start, 
+          end: (if node? then node else operator).tracking.end
+        }
+      }
+
+  tidbit: (subject) =>
     expr =  @block(subject) or 
             @function(subject) or
-            @assignment(subject) or 
-            @operator(subject) or
+            @assignment(subject) or
             @execute(subject) or
             subject
     expr
@@ -119,31 +135,16 @@ module.exports = class Parser extends Cursor
           tracking: { start: subject.tracking.start, end: node.tracking.end }
         }
 
-  operator: (subject) =>
-    if subject?.type is "operator"
-      node = @expr(@lexer.next())
-      value = if node then node else undefined
-      return {
-        type: "operator", operator: subject.token, value: value,
-        tracking: { 
-          start: subject.tracking.start, 
-          end: (if node? then node else subject).tracking.end
-        }
-      }
-
   execute: (subject) =>
     if subject?.type is "symbol"
       params = []
       while @lexer.peek()? and @lexer.peek().token != "\n"
-        expr = @expr(@lexer.next())
-        if expr.type is "operator"
-          return {
-            type: "execute", symbol: subject.token, operator: expr.operator, 
-            params: (if expr.value? then [expr.value] else undefined),
-            tracking: { start: subject.tracking.start, end: expr.tracking.end }
-          }
-        else
+        expr = @tidbit(@lexer.next())
+        if expr? and expr.type != "operator"
           params.push expr
+        else
+          @lexer.back()
+          break
         break unless @lexer.peek()? and @lexer.peek().token == ","
         @lexer.next()
       return {

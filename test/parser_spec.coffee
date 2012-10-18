@@ -33,32 +33,27 @@ describe 'parser', ->
     (node.operator==undefined).should.eql true
     node.params[0].symbol.should.eql 'b'
 
-  it 'execute with operator', ->
+  it 'operator statement', ->
     node = parse("a + b").next()
-    node.type.should.eql 'execute'
+    node.type.should.eql 'operator'
     node.operator.should.eql '+'
 
 
   it 'self operator', ->
     node = parse("a++").next()
-    node.type.should.eql 'execute'
+    node.type.should.eql 'operator'
     node.operator.should.eql '++'
-    (node.value==undefined).should.eql true
-    node.symbol.should.eql "a"
+    node.left.symbol.should.eql "a"
 
   it 'dot operator', ->
     node = parse("this.is.a.test").next()
-    node.type.should.eql 'execute'
+    node.type.should.eql 'operator'
     node.operator.should.eql '.'
-    node = node.params[0]
-    node.type.should.eql 'execute'
-    node.subject.symbol.should.eql 'is'
-    node = node.params[0]
-    node.type.should.eql 'execute'
+    node.right.type.should.eql 'operator'
 
   it 'dot operator with expr in it', ->
-    node = parse("(expr).prop").next
-    node.type.should.eql 'execute'
-    node.subject.type.should.eql 'block'
+    node = parse("(expr).prop").next()
+    node.type.should.eql 'operator'
+    node.left.type.should.eql 'block'
     node.operator.should.eql "."
-    node.params[0].type.should.eql 'execute'
+    node.right.type.should.eql 'execute'
