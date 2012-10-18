@@ -23,7 +23,9 @@ sprint = (list, indent = "") ->
     else if node.type is "function"
       "#{head}\n#{sprint([node.body],indent+"  ")}\n#{indent})"
     else if node.type is "execute"
-      "#{head} #{clc.blue("#{node.symbol}")}#{if node.operator? then " #{node.operator} " else ""}#{if node.params?.length > 0 then "\n#{sprint(node.params,indent+"  ")}\n#{indent}" else ""})" 
+      "#{head} #{clc.blue("#{node.symbol}")}#{if node.params?.length > 0 then "\n#{sprint(node.params,indent+"  ")}\n#{indent}" else ""})" 
+    else if node.type is "operator"
+      "#{head} #{clc.blue("#{node.operator}")}\n#{sprint([node.left, node.right],indent+"  ")}\n#{indent})" 
     else if node.type is "assignment" or node.type is "property_assignment"
       "#{head} #{clc.blue("#{node.symbol}")}\n#{sprint([node.value],indent+"  ")}\n#{indent})" 
     else if node.type is "literal"
@@ -56,22 +58,29 @@ module.exports = class Parser extends Cursor
     @memos[req_index]
 
   statement: () =>
-    subject = @lexer.next()
-    subject = @lexer.next() while subject?.type is "linefeed"
-    if expr = @expr(subject)
+    @lexer.next() while @lexer.peek()?.type is "linefeed"
+    if expr = @expr()
       new ParseNode expr
     else
       undefined
 
-  expr: (subject) =>
-    expr = @tidbit(subject)
+  expr: () =>
+    expr = @tidbit() 
     expr = @operator(expr) or expr
     expr
 
   operator: (expr) =>
     if expr? and @lexer.peek()? and @lexer.peek().type == "operator"
       operator = @lexer.next()
-      node = @expr(@lexer.next())
+      node = @tidbit()
+      if expr? and @lexer.peek()? and @lexer.peek().type == "operator"
+        return @operator({ 
+          type: 'operator', left: expr, right: node, operator: operator.token,
+          tracking: { 
+            start: expr.tracking.start, 
+            end: (if node? then node else operator).tracking.end
+          }
+        })
       return { 
         type: 'operator', left: expr, right: node, operator: operator.token,
         tracking: { 
@@ -80,66 +89,74 @@ module.exports = class Parser extends Cursor
         }
       }
 
-  tidbit: (subject) =>
-    expr =  @block(subject) or 
-            @function(subject) or
-            @assignment(subject) or
-            @execute(subject) or
-            subject
+  tidbit: () =>
+    expr = @block() or 
+           @function() or
+           @assignment() or
+           @execute() or
+    expr = @lexer.next() unless expr
     expr
 
-  block: (subject) =>
-    if subject?.type is "block"
+  block: () =>
+    if @lexer.peek()?.type is "block"
+      subject = @lexer.next()
       return { 
         type: "block", source: subject.source,
         tracking: { start: subject.tracking.start, end: subject.tracking.end }
       }
-    if subject?.type is "linefeed"
-      if @lexer.peek()?.type is "block"
+    if @lexer.peek()?.type is "linefeed"
+      if @lexer.peek(2)?.type is "block"
+        subject = @lexer.next(2)
         n = @lexer.next()
         return {
           type: "block", source: n.source,
           tracking: { start: subject.tracking.start, end: n.tracking.end }
         }
 
-  function: (subject) =>
-    if subject?.type is "function"
-      node = @expr(@lexer.next())
+  function: () =>
+    if @lexer.peek()?.type is "function"
+      subject = @lexer.next()
+      node = @expr()
       return {
         type: "function", body: node,
         tracking: { start: subject.tracking.start, end: node.tracking.end }
       }
 
-  assignment: (subject) =>
-    @property_assignment(subject) or
-    @local_assignment(subject)
+  assignment: () =>
+    @property_assignment() or
+    @local_assignment()
 
-  property_assignment: (subject) =>
-    if subject?.type is "symbol"
-      n = @lexer.peek()
+  property_assignment: () =>
+    if @lexer.peek()?.type is "symbol"
+      n = @lexer.peek(2)
       if n?.token is ":"
-        node = @expr(@lexer.next(2))
+        subject = @lexer.next()
+        @lexer.next()
+        node = @expr()
         return {
           type: "property_assignment", symbol: subject.token, value: node,
           tracking: { start: subject.tracking.start, end: node.tracking.end }
         }
     return null
 
-  local_assignment: (subject) =>
-    if subject?.type is "symbol"
-      n = @lexer.peek()
+  local_assignment: () =>
+    if @lexer.peek()?.type is "symbol"
+      n = @lexer.peek(2)
       if n?.token is "="
-        node = @expr(@lexer.next(2))
+        subject = @lexer.next()
+        @lexer.next()
+        node = @expr()
         return {
           type: "assignment", symbol: subject.token, value: node,
           tracking: { start: subject.tracking.start, end: node.tracking.end }
         }
 
-  execute: (subject) =>
-    if subject?.type is "symbol"
+  execute: () =>
+    if @lexer.peek()?.type is "symbol"
+      subject = @lexer.next()
       params = []
       while @lexer.peek()? and @lexer.peek().token != "\n"
-        expr = @tidbit(@lexer.next())
+        expr = @tidbit()
         if expr? and expr.type != "operator"
           params.push expr
         else

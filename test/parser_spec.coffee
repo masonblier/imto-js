@@ -1,11 +1,13 @@
 imto = require('../src')
 
+p = (node) -> process.stdout.write "\n#{node}\n"
 parse = (str) -> new imto.Parser(new imto.Lexer(str))
 
 describe 'parser', ->
 
   it 'parenclosure', ->
-    parse(" ( 2) ").next().type.should == 'literal'
+    n = parse(" ( 2) ").next()
+    n.type.should == 'literal'
 
   it 'block', ->
     list = parse("this\n  is_a \"block\"\nout").all()
@@ -49,7 +51,12 @@ describe 'parser', ->
     node = parse("this.is.a.test").next()
     node.type.should.eql 'operator'
     node.operator.should.eql '.'
-    node.right.type.should.eql 'operator'
+    node.left.type.should.eql 'operator'
+    node.left.left.type.should.eql 'operator'
+    node.left.left.left.symbol.should.eql 'this'
+    node.left.left.right.symbol.should.eql 'is'
+    node.left.right.symbol.should.eql 'a'
+    node.right.symbol.should.eql 'test'
 
   it 'dot operator with expr in it', ->
     node = parse("(expr).prop").next()
@@ -57,3 +64,12 @@ describe 'parser', ->
     node.left.type.should.eql 'block'
     node.operator.should.eql "."
     node.right.type.should.eql 'execute'
+
+  it 'evaluate left to right for flat precedence', ->
+    node = parse("a + b + c").next()
+    node.type.should.eql 'operator'
+    node.left.type.should.eql 'operator'
+    node.right.type.should.eql 'execute'
+    node.left.left.symbol.should.eql 'a'
+    node.left.right.symbol.should.eql 'b'
+    node.right.symbol.should.eql 'c'
