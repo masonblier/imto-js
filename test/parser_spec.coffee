@@ -1,6 +1,6 @@
 imto = require('../src')
 
-p = (node) -> process.stdout.write "\n#{node}\n"
+global.p = (node) -> process.stdout.write "\n#{node}\n"
 parse = (str) -> new imto.Parser(new imto.Lexer(str))
 
 describe 'parser', ->
@@ -47,29 +47,63 @@ describe 'parser', ->
     node.operator.should.eql '++'
     node.left.symbol.should.eql "a"
 
-  it 'dot operator', ->
-    node = parse("this.is.a.test").next()
-    node.type.should.eql 'operator'
-    node.operator.should.eql '.'
-    node.left.type.should.eql 'operator'
-    node.left.left.type.should.eql 'operator'
-    node.left.left.left.symbol.should.eql 'this'
-    node.left.left.right.symbol.should.eql 'is'
-    node.left.right.symbol.should.eql 'a'
-    node.right.symbol.should.eql 'test'
+  describe '. operator', ->
+    it 'parses left to right', ->
+      node = parse("this.is.a.test").next()
+      node.type.should.eql 'operator'
+      node.operator.should.eql '.'
+      node.left.type.should.eql 'operator'
+      node.left.left.type.should.eql 'operator'
+      node.left.left.left.symbol.should.eql 'this'
+      node.left.left.right.symbol.should.eql 'is'
+      node.left.right.symbol.should.eql 'a'
+      node.right.symbol.should.eql 'test'
 
-  it 'dot operator with expr in it', ->
-    node = parse("(expr).prop").next()
-    node.type.should.eql 'operator'
-    node.left.type.should.eql 'block'
-    node.operator.should.eql "."
-    node.right.type.should.eql 'execute'
+    it 'with expr in it', ->
+      node = parse("(expr).prop").next()
+      node.type.should.eql 'operator'
+      node.left.type.should.eql 'block'
+      node.operator.should.eql "."
+      node.right.type.should.eql 'execute'
 
-  it 'evaluate left to right for flat precedence', ->
-    node = parse("a + b + c").next()
-    node.type.should.eql 'operator'
-    node.left.type.should.eql 'operator'
-    node.right.type.should.eql 'execute'
-    node.left.left.symbol.should.eql 'a'
-    node.left.right.symbol.should.eql 'b'
-    node.right.symbol.should.eql 'c'
+    it 'can properly nest with other operators', ->
+      node = parse("a.b + a.c").next()
+      node.type.should.eql 'operator'
+      node.operator.should.eql '+'
+      node.left.operator.should.eql '.'
+      node.right.operator.should.eql '.'
+      node.left.left.symbol.should.eql 'a'
+      node.left.right.symbol.should.eql 'b'
+      node.right.left.symbol.should.eql 'a'
+      node.right.right.symbol.should.eql 'c'
+
+    it 'harder example', ->
+      node = parse("(a+b).d.(c+d.b)").next()
+      node.type.should.eql 'operator'
+      node.operator.should.eql '.'
+      node.left.operator.should.eql '.'
+      node.left.left.type.should.eql 'block'
+      node.left.right.symbol.should.eql 'd'
+      node.right.type.should.eql 'block'
+      ablk = parse(node.left.left.source).next()
+      ablk.operator.should.eql '+'
+      ablk.left.symbol.should.eql 'a'
+      ablk.right.symbol.should.eql 'b'
+      bblk = parse(node.right.source).next()
+      bblk.operator.should.eql '+'
+      bblk.left.symbol.should.eql 'c'
+      bblk.right.operator.should.eql '.'
+      bblk.right.left.symbol.should.eql 'd'
+      bblk.right.right.symbol.should.eql 'b'
+
+
+
+  describe 'operators', ->
+    it ' left to right for flat precedence', ->
+      node = parse("a + b + c").next()
+      node.type.should.eql 'operator'
+      node.left.type.should.eql 'operator'
+      node.right.type.should.eql 'execute'
+      node.left.left.symbol.should.eql 'a'
+      node.left.right.symbol.should.eql 'b'
+      node.right.symbol.should.eql 'c'

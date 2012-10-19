@@ -171,3 +171,14 @@ describe 'lexer', ->
     node = cursor.next()
     node.type.should.eql 'block'
     node.source.should.eql "\"this is only a test\""
+
+  it 'parens are not operators', ->
+    cursor = lex("(a).(b)")
+    node = cursor.next()
+    node.type.should.eql 'block'
+    node = cursor.next()
+    node.type.should.eql 'operator'
+    node.token.should.eql '.'
+    node = cursor.next()
+    node.type.should.eql 'block'
+    node.source.should.eql 'b'

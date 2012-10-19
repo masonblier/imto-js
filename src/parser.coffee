@@ -8,6 +8,8 @@ Cursor = require './Cursor'
 
 parse = (str) -> if str? then (new Parser(new Lexer(str))).all() else {}
 
+precedence = {"+":1,".":2}
+
 clc = require('cli-color')
   # green: (a) -> a
   # blue:  (a) -> a
@@ -17,6 +19,7 @@ clc = require('cli-color')
 # sprint node function
 sprint = (list, indent = "") ->
   (for node in list
+    pp list unless node
     head = "#{indent}(#{clc.green(node.type)}"
     if node.type is "block"
       "#{head}\n#{sprint(parse(node.source),indent+"  ")}\n#{indent})"
@@ -74,13 +77,16 @@ module.exports = class Parser extends Cursor
       operator = @lexer.next()
       node = @tidbit()
       if expr? and @lexer.peek()? and @lexer.peek().type == "operator"
-        return @operator({ 
+        if precedence[@lexer.peek().token]? and precedence[@lexer.peek().token] > precedence[operator.token]
+          node = @operator(node)
+        result = { 
           type: 'operator', left: expr, right: node, operator: operator.token,
           tracking: { 
             start: expr.tracking.start, 
             end: (if node? then node else operator).tracking.end
           }
-        })
+        }
+        return @operator(result) or result
       return { 
         type: 'operator', left: expr, right: node, operator: operator.token,
         tracking: { 

@@ -3,7 +3,7 @@
 Cursor = require "./cursor"
 
 WHITESPACE = [' ', '\t']
-OPERATORS = ['=','+','-','*','/','<','>','%','&','(',')','[',']','^',':','?','.']
+OPERATORS = ['=','+','-','*','/','<','>','%','&','^',':','?','.']
 
 class SyntaxError extends Error
 
