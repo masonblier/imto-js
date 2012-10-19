@@ -1,24 +1,16 @@
 # Globals
 
-{inspect}    = require 'util'
-
 enableColours = no
 unless process.platform is 'win32'
   enableColours = not process.env.NODE_DISABLE_COLORS
 
-global.clc = 
+clc = 
   if enableColours
     require('cli-color')
   else
     green: (a) -> a
     blue:  (a) -> a
     red:   (a) -> a
-
-global.pp = (obj) ->
-  console.log("------------");
-  console.log(inspect(obj, true, 4, true));
-global.p = (node) ->
-  process.stdout.write("============\n#{node}\n");
 
 class global.ImtoError extends Error
   constructor: (@message, options) ->
@@ -30,7 +22,6 @@ class global.ImtoError extends Error
     else
       @message
 
-# sprint node function
 sprint = (list, indent = "") ->
   (for node in list
     head = "#{indent}(#{clc.green(node.type)}"
@@ -54,9 +45,12 @@ sprint = (list, indent = "") ->
       "#{head} '#{node.token}')"
   ).join "\n"
 
-class global.ParseNode
-  constructor: (options) ->
-    for own p of options
-      @[p] = options[p]
-  toString: () =>
-    sprint [@]
+module.exports =
+  # ImtoError
+  ImtoError: ImtoError
+
+  # colors
+  clc: clc
+
+  # printNode function
+  printNode: (node) -> sprint [node]

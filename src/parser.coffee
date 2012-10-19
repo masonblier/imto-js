@@ -4,9 +4,17 @@
 
 Lexer = require './lexer'
 Parser = require './parser'
-Cursor = require './Cursor'
+Cursor = require './cursor'
+{printNode, ImtoError} = require './utils'
 
 class ParseError extends ImtoError
+
+class global.ParseNode
+  constructor: (options) ->
+    for own p of options
+      @[p] = options[p]
+  toString: () =>
+    printNode @
 
 class BlockNode extends ParseNode
   parse: () =>

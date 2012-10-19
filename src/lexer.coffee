@@ -1,6 +1,7 @@
 # requirements
 
 Cursor = require "./cursor"
+{ImtoError} = require './utils'
 
 WHITESPACE = [' ', '\t']
 OPERATORS = ['=','+','-','*','/','<','>','%','&','^',':','?','.']

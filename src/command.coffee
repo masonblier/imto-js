@@ -9,6 +9,7 @@ imto         = require './index'
 readline     = require 'readline'
 {Script}     = require 'vm'
 Module       = require 'module'
+{clc} = require './utils'
 
 REPL_PROMPT = clc.blue('imto> ')
 REPL_PROMPT_MULTILINE = clc.blue('----> ')
