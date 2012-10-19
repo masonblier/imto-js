@@ -1,6 +1,6 @@
 imto = require('../src')
 
-lex = (str) -> new imto.Lexer(str)
+lex = (str) -> new imto.Interpreter().lex(str)
 
 describe 'lexer', ->  
   count = -1

@@ -1,6 +1,6 @@
 imto = require('../src')
 
-parse = (str) -> new imto.Parser(new imto.Lexer(str))
+parse = (str) -> new imto.Interpreter().parse(str)
 
 describe 'parser', ->
 
@@ -101,11 +101,11 @@ describe 'parser', ->
       node.left.left.type.should.eql 'block'
       node.left.right.symbol.should.eql 'd'
       node.right.type.should.eql 'block'
-      ablk = parse(node.left.left.source).next()
+      ablk = node.left.left.parse().next()
       ablk.operator.should.eql '+'
       ablk.left.symbol.should.eql 'a'
       ablk.right.symbol.should.eql 'b'
-      bblk = parse(node.right.source).next()
+      bblk = node.right.parse().next()
       bblk.operator.should.eql '+'
       bblk.left.symbol.should.eql 'c'
       bblk.right.operator.should.eql '.'

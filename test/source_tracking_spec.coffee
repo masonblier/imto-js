@@ -1,7 +1,7 @@
-{Parser, Lexer} = require('../src')
+imto = require('../src')
 
-lex = (str) -> new Lexer(str)
-parse = (str, offset) -> (new Parser(new Lexer(str, offset)))
+lex = (str) -> new imto.Lexer(str)
+parse = (str, offset) -> new imto.Interpreter().parse(str)
 
 describe "source tracking", ->
   describe 'lexer', ->
@@ -44,14 +44,14 @@ describe "source tracking", ->
       ast.at(0).value.tracking.start.should.eql {line: 0, column: 3, char: "q" }
       ast.at(0).value.tracking.end.should.eql   { line: 2, column: 4, char: "+" }
 
-      subast = parse(ast.at(0).value.value.body.source)
-      subast.peek().tracking.start.should.eql {line: 0, column: 0, char: "c" }
-      subast.next().tracking.end.should.eql   {line: 0, column: 20, char: "]" }
-      subast.peek().tracking.start.should.eql {line: 0, column: 21, char: "(" }
-      subast.next().tracking.end.should.eql   {line: 0, column: 22, char: ")" }
+      subast = ast.at(0).value.value.body.parse()
+      subast.peek().tracking.start.should.eql {line: 1, column: 2, char: "c" }
+      subast.next().tracking.end.should.eql   {line: 1, column: 22, char: "]" }
+      subast.peek().tracking.start.should.eql {line: 1, column: 23, char: "(" }
+      subast.next().tracking.end.should.eql   {line: 1, column: 24, char: ")" }
       
-      subast.peek().tracking.start.should.eql {line: 1, column: 0, char: "i" }
-      subast.next().tracking.end.should.eql   {line: 1, column: 2, char: "+" }
+      subast.peek().tracking.start.should.eql {line: 2, column: 2, char: "i" }
+      subast.next().tracking.end.should.eql   {line: 2, column: 4, char: "+" }
 
     it 'things inside blocks still have correct source line and columns', ->
       ast = parse("this\n  is \"just a test\"\n  just (like + yesterday)\n\"or tomorrow\"")
@@ -62,7 +62,7 @@ describe "source tracking", ->
       ast.peek().tracking.start.should.eql      {line: 3, column: 0, char: '\"' }
       ast.next().tracking.end.should.eql        {line: 3, column: 12, char: '\"'}
 
-      subast = parse(ast.at(0).params[0].source, tracking: ast.at(0).params[0].tracking)
+      subast = ast.at(0).params[0].parse()
       subast.peek().type.should.eql 'execute'
       subast.peek().tracking.start.should.eql   {line: 1, column: 2, char: 'i'}
       subast.peek().tracking.end.should.eql     {line: 1, column: 17, char: '\"'}
