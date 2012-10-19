@@ -13,4 +13,7 @@ global.ImtoError = class ImtoError extends Error
     super(message)
     @tracking = options.tracking if options?.tracking?
   toString: () =>
-    "{#{@tracking.line},#{@tracking.column}} #{@message}"
+    if @tracking?
+      "{#{@tracking.line},#{@tracking.column}} #{@message}" 
+    else
+      @message

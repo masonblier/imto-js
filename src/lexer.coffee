@@ -207,7 +207,7 @@ module.exports = class Lexer extends Cursor
           tracking: { start: tracking_start, end: cc.peek(0) } 
         }
       else
-        throw new SyntaxError("Unterminated String")
+        throw new SyntaxError("Unterminated String", tracking: tracking_start)
 
     # match COMMENTS
     if cc.peek().char is "#"

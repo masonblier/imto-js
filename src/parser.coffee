@@ -6,7 +6,7 @@ Lexer = require './lexer'
 Parser = require './parser'
 Cursor = require './Cursor'
 
-class ParseError extends Error
+class ParseError extends ImtoError
 
 parse = (str, options) -> if str? then (new Parser(new Lexer(str, options))).all() else {}
 
@@ -152,7 +152,8 @@ module.exports = class Parser extends Cursor
           while @lexer.peek()?.token == ','
             @lexer.next()
             node = @hash_assignment()
-            throw new ParseError("unfinished hash") unless node?
+            unless node?
+              throw new ParseError("Unfinished hash", tracking: @lexer.prev(0).tracking.start)
             statements.push node
           return {
             type: "hash", statements: statements,
