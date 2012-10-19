@@ -124,7 +124,7 @@ module.exports = class Parser extends Cursor
       subject = @lexer.next()
       node = @expr()
       return {
-        type: "function", body: node,
+        type: "function", body: node, signature: subject.source,
         tracking: { start: subject.tracking.start, end: node.tracking.end }
       }
 

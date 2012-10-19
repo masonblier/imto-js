@@ -19,8 +19,13 @@ describe 'parser', ->
     list[1].type.should.eql 'execute'
     list[1].params.should.eql []
 
-  it "function", ->
-    parse("()->3").next().type.should.eql 'function'
+  describe 'functions', ->
+    it "parses functions", ->
+      parse("()->3").next().type.should.eql 'function'
+
+    it 'have signature', ->
+      node = parse("(a, b, c)->a+b+c").next()
+      node.signature.should.eql 'a, b, c'
 
   it 'property_assignment', ->
     parse("p: 7").next().type.should.eql 'property_assignment'
@@ -107,3 +112,7 @@ describe 'parser', ->
       node.left.left.symbol.should.eql 'a'
       node.left.right.symbol.should.eql 'b'
       node.right.symbol.should.eql 'c'
+
+  describe 'property assignment & hashes', ->
+    it 'creates a new block when hashes are seperated by commas in a param list', ->
+
