@@ -190,3 +190,7 @@ describe 'lexer', ->
     node.value.should.eql 393393
     node = cursor.next()
     node.type.should.eql 'comma'
+
+  it 'should parse single line comments', ->
+    node = lex("# this is a comment").next()
+    node.type.should.eql 'comment'

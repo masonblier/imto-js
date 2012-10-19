@@ -1,7 +1,7 @@
-imto = require('../src')
+{Parser, Lexer} = require('../src')
 
-lex = (str) -> new imto.Interpreter().lex(str)
-parse = (str) -> new imto.Interpreter().parse(str)
+lex = (str) -> new Lexer(str)
+parse = (str, offset) -> (new Parser(new Lexer(str, offset)))
 
 describe "source tracking", ->
   describe 'lexer', ->
@@ -17,7 +17,7 @@ describe "source tracking", ->
       ast.next().tracking.start.should.eql { line: 0, column: 8, char: '<'}
       ast.next().tracking.start.should.eql { line: 0, column: 10, char: '0'}
       ast.peek().type.should.eql "block"
-      ast.peek().tracking.start.should.eql { line: 1, column: 0, char: ' ' }
+      ast.peek().tracking.start.should.eql { line: 1, column: 2, char: 'c' }
       ast.next().tracking.end.should.eql   { line: 2, column: 4, char: '+' }
       ast.next().tracking.start.should.eql { line: 2, column: 5, char: '\n' }
       ast.peek().tracking.start.should.eql { line: 3, column: 0, char: '(' }
@@ -25,6 +25,11 @@ describe "source tracking", ->
       ast.peek().tracking.start.should.eql { line: 3, column: 4, char: '"' }
       ast.next().tracking.end.should.eql   { line: 3, column: 10, char: '"' }
       ast.next().tracking.start.should.eql { line: 3, column: 11, char: '\n' }
+
+    it 'blocks columns include indents', ->
+      ast = lex("  my block")
+      ast.peek().tracking.start.should.eql { line: 0, column: 2, char: 'm' }
+      ast.peek().tracking.end.should.eql { line: 0, column: 9, char: 'k' }
 
   describe 'parser', ->
 
@@ -47,6 +52,21 @@ describe "source tracking", ->
       
       subast.peek().tracking.start.should.eql {line: 1, column: 0, char: "i" }
       subast.next().tracking.end.should.eql   {line: 1, column: 2, char: "+" }
+
+    it 'things inside blocks still have correct source line and columns', ->
+      ast = parse("this\n  is \"just a test\"\n  just (like + yesterday)\n\"or tomorrow\"")
+      ast.peek().type.should.eql 'execute'
+      ast.peek().tracking.start.should.eql      {line: 0, column: 0, char: 't' }
+      ast.next().tracking.end.should.eql        {line: 2, column: 24, char: ')'}
+      ast.peek().type.should.eql 'string'
+      ast.peek().tracking.start.should.eql      {line: 3, column: 0, char: '\"' }
+      ast.next().tracking.end.should.eql        {line: 3, column: 12, char: '\"'}
+
+      subast = parse(ast.at(0).params[0].source, tracking: ast.at(0).params[0].tracking)
+      subast.peek().type.should.eql 'execute'
+      subast.peek().tracking.start.should.eql   {line: 1, column: 2, char: 'i'}
+      subast.peek().tracking.end.should.eql     {line: 1, column: 17, char: '\"'}
+      subast.next().params[0].tracking.start.should.eql {line: 1, column: 5, char: "\""}
 
   it "tracks execute statement", ->
     node = parse("a b").next()

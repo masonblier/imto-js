@@ -8,7 +8,7 @@ OPERATORS = ['=','+','-','*','/','<','>','%','&','^',':','?','.']
 class SyntaxError extends Error
 
 class CharCursor extends Cursor
-  constructor: (@input) ->
+  constructor: (@input, options) ->
     super()
     @input = @input.replace("\r","")
     @length = @input.length
@@ -16,6 +16,10 @@ class CharCursor extends Cursor
     @line_ends = []
     @indents = []
     acc = 0
+    if options?.tracking?.start?
+      @offset = options.tracking.start
+    else
+      @offset = line: 0, column: 0
     for line in @lines
       acc += line.length
       @line_ends.push acc
@@ -29,8 +33,8 @@ class CharCursor extends Cursor
     while index > @line_ends[line]
       line++
     return {
-      line: line, 
-      column: index - (if line > 0 then @line_ends[line-1]+1 else 0),
+      line: line + @offset.line, 
+      column: index - (if line > 0 then @line_ends[line-1]+1 else 0) + @offset.column,
       char: @input[index]
     }
 
@@ -53,13 +57,13 @@ module.exports = class Lexer extends Cursor
   @CharCursor: CharCursor
 
   # constructor
-  constructor: (input) ->
+  constructor: (input, options) ->
     super()
     @memo_index = -1
     @memos = []
     @linestart = true
     @indent = 0
-    @char_cursor = new CharCursor(input)
+    @char_cursor = new CharCursor(input, options)
     # skip starter newlines
     while @char_cursor.peek()?.char == "\n"
       @char_cursor.next()
@@ -97,6 +101,7 @@ module.exports = class Lexer extends Cursor
     # match indentation block
     if cc.peek()? and cc.peek().char != "\n" and cc.indent(cc.index) > @indent
       indent = cc.indent(cc.index)
+      tracking_start = cc.peek(indent+1)
       while cc.index < cc.length and (cc.indent(cc.index) > @indent)
         buffer += cc.next().char
       if cc.prev(0)?.char == "\n"
@@ -198,9 +203,20 @@ module.exports = class Lexer extends Cursor
       if cc.next()?.char == boundary
         return {
           type: "string", token: "#{boundary}#{buffer}#{boundary}", value: buffer,
-          tracking: { start: tracking_start, end: cc.peek(0) } }
+          tracking: { start: tracking_start, end: cc.peek(0) } 
+        }
       else
         throw new SyntaxError("Unterminated String")
+
+    # match COMMENTS
+    if cc.peek().char is "#"
+      while c = cc.next()?
+        break if c is "\n"
+        buffer += c
+      return {
+        type: "comment", token: buffer,
+        tracking: { start: tracking_start, end: cc.peek(0) }
+      }
 
     # match COMMA
     if cc.peek().char == ","
