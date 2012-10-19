@@ -180,6 +180,7 @@ module.exports = class Lexer extends Cursor
       while cc.peek()? and /([0-9]|\.|\,)/.test cc.peek().char
         buffer += cc.next().char
       if cc.prev(0)?.char == ',' # toss back last commas
+        cc.back()
         buffer = buffer.substr(0,buffer.length-1)      
       return {
         type: "number", token: buffer, value: parseFloat(buffer.replace(",","")),
@@ -200,6 +201,14 @@ module.exports = class Lexer extends Cursor
           tracking: { start: tracking_start, end: cc.peek(0) } }
       else
         throw new SyntaxError("Unterminated String")
+
+    # match COMMA
+    if cc.peek().char == ","
+      cc.next()
+      return {
+        type: 'comma', token: ",",
+        tracking: { start: tracking_start, end: cc.peek(0) } 
+      }
 
     # match LINEFEED
     if cc.peek().char == "\n"

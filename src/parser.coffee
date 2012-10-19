@@ -6,6 +6,8 @@ Lexer = require './lexer'
 Parser = require './parser'
 Cursor = require './Cursor'
 
+class ParseError extends Error
+
 parse = (str) -> if str? then (new Parser(new Lexer(str))).all() else {}
 
 precedence = {"+":1,".":2}
@@ -27,9 +29,11 @@ sprint = (list, indent = "") ->
       "#{head}\n#{sprint([node.body],indent+"  ")}\n#{indent})"
     else if node.type is "execute"
       "#{head} #{clc.blue("#{node.symbol}")}#{if node.params?.length > 0 then "\n#{sprint(node.params,indent+"  ")}\n#{indent}" else ""})" 
+    else if node.type is "hash"
+      "#{head} #{if node.statements?.length > 0 then "\n#{sprint(node.statements,indent+"  ")}\n#{indent}" else ""})" 
     else if node.type is "operator"
       "#{head} #{clc.blue("#{node.operator}")}\n#{sprint([node.left, node.right],indent+"  ")}\n#{indent})" 
-    else if node.type is "assignment" or node.type is "property_assignment"
+    else if node.type is "assignment" or node.type is "hash_assignment"
       "#{head} #{clc.blue("#{node.symbol}")}\n#{sprint([node.value],indent+"  ")}\n#{indent})" 
     else if node.type is "literal"
       "#{head} #{clc.red(node.token)})"
@@ -129,20 +133,33 @@ module.exports = class Parser extends Cursor
       }
 
   assignment: () =>
-    @property_assignment() or
+    @hash_assignment() or
     @local_assignment()
 
-  property_assignment: () =>
+  hash_assignment: () =>
     if @lexer.peek()?.type is "symbol"
       n = @lexer.peek(2)
       if n?.token is ":"
         subject = @lexer.next()
         @lexer.next()
         node = @expr()
-        return {
-          type: "property_assignment", symbol: subject.token, value: node,
+        first = {
+          type: "hash_assignment", symbol: subject.token, value: node,
           tracking: { start: subject.tracking.start, end: node.tracking.end }
         }
+        if @lexer.peek()?.token == ','
+          statements = [first]
+          while @lexer.peek()?.token == ','
+            @lexer.next()
+            node = @hash_assignment()
+            throw new ParseError("unfinished hash") unless node?
+            statements.push node
+          return {
+            type: "hash", statements: statements,
+            tracking: { start: subject.tracking.start, end: node.tracking.end }
+          }
+        else
+          return first
     return null
 
   local_assignment: () =>
@@ -151,7 +168,7 @@ module.exports = class Parser extends Cursor
       if n?.token is "="
         subject = @lexer.next()
         @lexer.next()
-        node = @expr()
+        node = @expr()  
         return {
           type: "assignment", symbol: subject.token, value: node,
           tracking: { start: subject.tracking.start, end: node.tracking.end }

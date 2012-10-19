@@ -27,8 +27,8 @@ describe 'parser', ->
       node = parse("(a, b, c)->a+b+c").next()
       node.signature.should.eql 'a, b, c'
 
-  it 'property_assignment', ->
-    parse("p: 7").next().type.should.eql 'property_assignment'
+  it 'hash_assignment', ->
+    parse("p: 7").next().type.should.eql 'hash_assignment'
 
   it 'local_assignment', ->
     parse("a = 7").next().type.should.eql 'assignment'
@@ -101,8 +101,6 @@ describe 'parser', ->
       bblk.right.left.symbol.should.eql 'd'
       bblk.right.right.symbol.should.eql 'b'
 
-
-
   describe 'operators', ->
     it ' left to right for flat precedence', ->
       node = parse("a + b + c").next()
@@ -115,4 +113,10 @@ describe 'parser', ->
 
   describe 'property assignment & hashes', ->
     it 'creates a new block when hashes are seperated by commas in a param list', ->
+      parser = parse("fn a:1, b:2")
+      node = parser.next()
+      (parser.peek()==undefined).should.eql true
+      node.type.should.eql 'execute'
+      node.symbol.should.eql 'fn'
+      node.params.length.should.eql 1
 
