@@ -14,5 +14,5 @@ global.pp = function(obj) {
   console.log(inspect(obj, true, 4, true));
 };
 global.p = function(node) {
-  process.stdout.write("============\n#{node}\n");
+  process.stdout.write("============\n"+node+"\n");
 };

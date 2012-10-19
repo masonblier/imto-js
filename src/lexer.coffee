@@ -212,7 +212,7 @@ module.exports = class Lexer extends Cursor
 
     # match COMMENTS
     if cc.peek().char is "#"
-      while c = cc.next()?
+      while c = cc.next()?.char
         break if c is "\n"
         buffer += c
       return {

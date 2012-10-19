@@ -1,0 +1,4 @@
+> # functions
+> fn = () -> 1
+> fn
+1

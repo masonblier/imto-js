@@ -3,13 +3,15 @@
 # requirements
 
 Lexer = require './lexer'
-Parser = require './parser'
 Cursor = require './cursor'
-{printNode, ImtoError} = require './utils'
+{ParseNode,BlockNode} = require './nodes'
+{printNode,ImtoError} = require './utils'
 
 class ParseError extends ImtoError
 
-class global.ParseNode
+precedence = {"+":1,".":2}
+
+class ParseNode
   constructor: (options) ->
     for own p of options
       @[p] = options[p]
@@ -18,9 +20,10 @@ class global.ParseNode
 
 class BlockNode extends ParseNode
   parse: () =>
-    if @source? then (new Parser(new Lexer(@source, tracking: @tracking))) else new Cursor
-
-precedence = {"+":1,".":2}
+    if @source?
+      return (new Parser(new Lexer(@source, tracking: @tracking))) 
+    else
+      return new Cursor
 
 module.exports = class Parser extends Cursor
   constructor: (@lexer) ->

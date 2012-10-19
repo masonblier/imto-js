@@ -1,21 +1,22 @@
 # Interpreter
 
-Context = require('./context')
 Lexer = require('./lexer')
 Parser = require('./parser')
+Context = require('./context')
+Evaluator = require('./evaluator')
 
 class Interpreter
   constructor: () ->
     @context = new Context()
 
   lex: (code) ->
-    # make lexer
     (new Lexer(code))
 
   parse: (code) ->
     (new Parser(new Lexer(code)))
 
   eval: (code) ->
-    @context.myvar = "1"
+    cursor = @parse code
+    (new Evaluator @context).run(cursor)
 
 module.exports = Interpreter
