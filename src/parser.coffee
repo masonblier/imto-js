@@ -8,7 +8,7 @@ Cursor = require './Cursor'
 
 class ParseError extends Error
 
-parse = (str) -> if str? then (new Parser(new Lexer(str))).all() else {}
+parse = (str, options) -> if str? then (new Parser(new Lexer(str, options))).all() else {}
 
 precedence = {"+":1,".":2}
 
@@ -24,7 +24,7 @@ sprint = (list, indent = "") ->
     pp list unless node
     head = "#{indent}(#{clc.green(node.type)}"
     if node.type is "block"
-      "#{head}\n#{sprint(parse(node.source),indent+"  ")}\n#{indent})"
+      "#{head}\n#{sprint(parse(node.source, tracking: node.tracking),indent+"  ")}\n#{indent})"
     else if node.type is "function"
       "#{head}\n#{sprint([node.body],indent+"  ")}\n#{indent})"
     else if node.type is "execute"

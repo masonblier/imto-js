@@ -5,7 +5,7 @@ Cursor = require "./cursor"
 WHITESPACE = [' ', '\t']
 OPERATORS = ['=','+','-','*','/','<','>','%','&','^',':','?','.']
 
-class SyntaxError extends Error
+class SyntaxError extends ImtoError
 
 class CharCursor extends Cursor
   constructor: (@input, options) ->
@@ -123,14 +123,15 @@ module.exports = class Lexer extends Cursor
     # match bracketted block
     if cc.peek().char in ["{", "[", "("]
       stack = 1
-      buffer = cc.next().char
+      source = cc.next()
+      buffer = source.char
       type = 'block'
 
       while stack > 0 and cc.index < cc.length
         stack -= 1 if cc.peek().char in ["}","]",")"]  
         stack += 1 if cc.peek().char in ["{", "[", "("]
         buffer += cc.next().char
-      throw new SyntaxError("Unbalanced Parenthesis") if stack > 0
+      throw new SyntaxError("Unmatched Bracket", tracking: source) if stack > 0
       # start parsing out source: 
       source = buffer.substring(1, buffer.length-1)
       # scan past last bracket, skipping whitespace
@@ -234,4 +235,8 @@ module.exports = class Lexer extends Cursor
         tracking: { start: tracking_start, end: cc.peek(0) } 
       }
 
-    throw new SyntaxError("Unknown token: #{cc.next()}")
+    # match unbalanced paren
+    if cc.peek().char in ["]", ")", "}"]
+      throw new SyntaxError("Umatched Bracket", tracking: cc.next())
+
+    throw new SyntaxError("Unknown token", tracking: cc.next())

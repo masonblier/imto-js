@@ -1,6 +1,5 @@
 imto = require('../src')
 
-global.p = (node) -> process.stdout.write "\n#{node}\n"
 parse = (str) -> new imto.Parser(new imto.Lexer(str))
 
 describe 'parser', ->

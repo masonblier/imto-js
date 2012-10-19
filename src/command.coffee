@@ -7,19 +7,27 @@ stdout = process.stdout
 
 imto         = require './index'
 readline     = require 'readline'
-{inspect}    = require 'util'
 {Script}     = require 'vm'
 Module       = require 'module'
 
-REPL_PROMPT = 'imto> '
-REPL_PROMPT_MULTILINE = '----> '
-REPL_PROMPT_CONTINUATION = '....> '
 enableColours = no
 unless process.platform is 'win32'
   enableColours = not process.env.NODE_DISABLE_COLORS
 
+clc = 
+  if enableColours
+    require('cli-color')
+  else
+    green: (a) -> a
+    blue:  (a) -> a
+    red:   (a) -> a
+
+REPL_PROMPT = clc.blue('imto> ')
+REPL_PROMPT_MULTILINE = clc.blue('----> ')
+REPL_PROMPT_CONTINUATION = clc.blue('....> ')
+
 error = (err) ->
-  stdout.write (err.stack or err.toString()) + '\n'
+  stdout.write clc.red(err.stack or err.toString()) + '\n'
 process.on 'uncaughtException', error
 
 # The current backlog of multi-line code.
