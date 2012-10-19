@@ -31,4 +31,7 @@ class Cursor
   prev: (i=1) =>
     @at((@index - i)-1)
 
+  # default at
+  at: (index) => undefined
+
 module.exports = Cursor

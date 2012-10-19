@@ -10,18 +10,6 @@ readline     = require 'readline'
 {Script}     = require 'vm'
 Module       = require 'module'
 
-enableColours = no
-unless process.platform is 'win32'
-  enableColours = not process.env.NODE_DISABLE_COLORS
-
-clc = 
-  if enableColours
-    require('cli-color')
-  else
-    green: (a) -> a
-    blue:  (a) -> a
-    red:   (a) -> a
-
 REPL_PROMPT = clc.blue('imto> ')
 REPL_PROMPT_MULTILINE = clc.blue('----> ')
 REPL_PROMPT_CONTINUATION = clc.blue('....> ')

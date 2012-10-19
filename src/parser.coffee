@@ -8,45 +8,11 @@ Cursor = require './Cursor'
 
 class ParseError extends ImtoError
 
-parse = (str, options) -> if str? then (new Parser(new Lexer(str, options))).all() else {}
+class BlockNode extends ParseNode
+  parse: () =>
+    if @source? then (new Parser(new Lexer(@source, tracking: @tracking))) else new Cursor
 
 precedence = {"+":1,".":2}
-
-clc = require('cli-color')
-  # green: (a) -> a
-  # blue:  (a) -> a
-  # red:   (a) -> a
-
-
-# sprint node function
-sprint = (list, indent = "") ->
-  (for node in list
-    pp list unless node
-    head = "#{indent}(#{clc.green(node.type)}"
-    if node.type is "block"
-      "#{head}\n#{sprint(parse(node.source, tracking: node.tracking),indent+"  ")}\n#{indent})"
-    else if node.type is "function"
-      "#{head}\n#{sprint([node.body],indent+"  ")}\n#{indent})"
-    else if node.type is "execute"
-      "#{head} #{clc.blue("#{node.symbol}")}#{if node.params?.length > 0 then "\n#{sprint(node.params,indent+"  ")}\n#{indent}" else ""})" 
-    else if node.type is "hash"
-      "#{head} #{if node.statements?.length > 0 then "\n#{sprint(node.statements,indent+"  ")}\n#{indent}" else ""})" 
-    else if node.type is "operator"
-      "#{head} #{clc.blue("#{node.operator}")}\n#{sprint([node.left, node.right],indent+"  ")}\n#{indent})" 
-    else if node.type is "assignment" or node.type is "hash_assignment"
-      "#{head} #{clc.blue("#{node.symbol}")}\n#{sprint([node.value],indent+"  ")}\n#{indent})" 
-    else if node.type is "literal"
-      "#{head} #{clc.red(node.token)})"
-    else
-      "#{head} '#{node.token}')"
-  ).join "\n"
-
-class ParseNode
-  constructor: (options) ->
-    for own p of options
-      @[p] = options[p]
-  toString: () =>
-    sprint [@]
 
 module.exports = class Parser extends Cursor
   constructor: (@lexer) ->
@@ -100,6 +66,8 @@ module.exports = class Parser extends Cursor
       }
 
   tidbit: () =>
+    if @lexer.peek()?.type in ['comma','linefeed','operator']
+      return undefined
     expr = @block() or 
            @function() or
            @assignment() or
@@ -110,7 +78,7 @@ module.exports = class Parser extends Cursor
   block: () =>
     if @lexer.peek()?.type is "block"
       subject = @lexer.next()
-      return { 
+      return new BlockNode { 
         type: "block", source: subject.source,
         tracking: { start: subject.tracking.start, end: subject.tracking.end }
       }
@@ -118,7 +86,7 @@ module.exports = class Parser extends Cursor
       if @lexer.peek(2)?.type is "block"
         subject = @lexer.next(2)
         n = @lexer.next()
-        return {
+        return new BlockNode  {
           type: "block", source: n.source,
           tracking: { start: subject.tracking.start, end: n.tracking.end }
         }
@@ -161,7 +129,6 @@ module.exports = class Parser extends Cursor
           }
         else
           return first
-    return null
 
   local_assignment: () =>
     if @lexer.peek()?.type is "symbol"
@@ -179,13 +146,8 @@ module.exports = class Parser extends Cursor
     if @lexer.peek()?.type is "symbol"
       subject = @lexer.next()
       params = []
-      while @lexer.peek()? and @lexer.peek().token != "\n"
-        expr = @tidbit()
-        if expr? and expr.type != "operator"
-          params.push expr
-        else
-          @lexer.back()
-          break
+      while expr = @tidbit()
+        params.push expr
         break unless @lexer.peek()? and @lexer.peek().token == ","
         @lexer.next()
       return {

@@ -32,12 +32,24 @@ describe 'parser', ->
   it 'local_assignment', ->
     parse("a = 7").next().type.should.eql 'assignment'
 
-  it "execute statement", ->
-    node = parse("a b").next()
-    node.type.should.eql 'execute'
-    node.symbol.should.eql 'a'
-    (node.operator==undefined).should.eql true
-    node.params[0].symbol.should.eql 'b'
+  describe 'execute statements', ->
+    it "simple one param", ->
+      node = parse("a b").next()
+      node.type.should.eql 'execute'
+      node.symbol.should.eql 'a'
+      (node.operator==undefined).should.eql true
+      node.params[0].symbol.should.eql 'b'
+
+    it '3 param with block', ->
+      node = parse("fn (is),a,2").next()
+      node.type.should.eql 'execute'
+      node.symbol.should.eql 'fn'
+      node.params.length.should.eql 3
+      node.params[0].type.should.eql 'block'
+      node.params[0].parse().at(0).symbol.should.eql 'is'
+      node.params[1].symbol.should.eql 'a'
+      node.params[1].params.length.should.eql 0
+      node.params[2].value.should.eql 2
 
   it 'operator statement', ->
     node = parse("a + b").next()
