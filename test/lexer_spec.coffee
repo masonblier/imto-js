@@ -184,7 +184,7 @@ describe 'lexer', ->
     node.source.should.eql 'b'
 
   it 'no trailing commas in numbers', ->
-    cursor = lex("393,393,")
+    cursor = lex("393393,")
     node = cursor.next()
     node.type.should.eql 'number'
     node.value.should.eql 393393

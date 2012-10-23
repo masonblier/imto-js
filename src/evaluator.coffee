@@ -55,6 +55,8 @@ module.exports = class Evaluator
     if node.type is "operator"
       if node.operator is "+"
         return @exec(node.left) + @exec(node.right)
+      if node.operator is "-"
+        return @exec(node.left) - @exec(node.right)
 
   # number
   number: (node) =>

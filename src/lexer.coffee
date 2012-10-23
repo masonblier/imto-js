@@ -184,11 +184,8 @@ module.exports = class Lexer extends Cursor
 
     # match NUMBER
     if /([0-9])/.test cc.peek().char
-      while cc.peek()? and /([0-9]|\.|\,)/.test cc.peek().char
-        buffer += cc.next().char
-      if cc.prev(0)?.char == ',' # toss back last commas
-        cc.back()
-        buffer = buffer.substr(0,buffer.length-1)      
+      while cc.peek()? and /([0-9]|\.)/.test cc.peek().char
+        buffer += cc.next().char  
       return {
         type: "number", token: buffer, value: parseFloat(buffer.replace(",","")),
         tracking: { start: tracking_start, end: cc.peek(0) } 
