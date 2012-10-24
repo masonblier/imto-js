@@ -14,14 +14,17 @@ load_imto_files = (filename) ->
       "utf8"
     ).split("\n") when not /^[ \t]*$/.test line)
     index = 0
-    test_description = undefined
-    actual = undefined
     while index < lines.length
+      test_description = undefined
+      actual = undefined
+      pending = false
+
       if lines[index].indexOf("#") is 0
         first = lines[index]
+        first = first.substr(1) if pending = (first.substr(0,2) is "#-")
         while lines[index].indexOf("#") is 0
           index += 1
-        test_description = "#{first.substr(1)}"
+        test_description = "#{first.substr(1).trim()}"
 
       if lines[index].indexOf("$") is 0
         start = index
@@ -39,7 +42,7 @@ load_imto_files = (filename) ->
       while index < lines.length and not (lines[index][0] in ["$","#"])
         index += 1
       str = lines.slice(start,index).join("\n")
-      if str?.length > 0
+      if !pending and str?.length > 0
         expected = 
           try
             if (/^[0-9\.]+$/.test str)
