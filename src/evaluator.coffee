@@ -19,6 +19,7 @@ module.exports = class Evaluator
   # execute
   exec: (node) =>
     return @assignment(node) or
+           @hash_assignment(node) or
            @execute(node) or
            @function(node) or
            @block(node) or
@@ -29,6 +30,12 @@ module.exports = class Evaluator
   assignment: (node) =>
     if node.type is "assignment"
       @context.set node.symbol, @exec node.value
+
+  # property assignment
+  hash_assignment: (node) =>
+    if node.type is "hash_assignment"
+      @context.set node.symbol, @exec node.value
+      @context.toJSON()
 
   # execute
   execute: (node) =>

@@ -9,4 +9,7 @@ class Context
   get: (symbol) =>
     @symbol_table[symbol]
 
+  toJSON: () =>
+    @symbol_table
+
 module.exports = Context

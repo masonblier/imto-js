@@ -21,12 +21,22 @@ make_test = (filename) ->
         try
           res = interpreter.eval lines.slice(start,index).join("\n")
         catch ex
-          res = ex
+          res = ex.toString()
       else
         start = index
         while index < lines.length and lines[index].indexOf(">") isnt 0
           index += 1
-        lines.slice(start,index).join("\n").should.eql res.toString()
+        (for line in lines.slice(start,index) 
+          if (value = parseFloat line) and value != NaN
+            value
+          else
+            try 
+              JSON.stringify(JSON.parse(line))
+            catch e
+              line
+        ).join("\n").should.eql (
+          if typeof res is "string" then res else JSON.stringify res
+        )
 
 describe 'code samples', ->
   for file in fs.readdirSync path.join(__dirname, "code_samples")
