@@ -1,6 +1,6 @@
 # integer numbers
-> 1 + 2
+$ 1 + 2
 3
 # floating point
-> 3.490 - 0.31
+$ 3.490 - 0.31
 3.18
