@@ -1,6 +1,6 @@
 # context
 
-class Context
+class SymbolTable
   constructor: () ->
     @symbol_table = {}
 
@@ -11,5 +11,14 @@ class Context
 
   toJSON: () =>
     @symbol_table
+
+class Context
+  constructor: () ->
+    @public = new SymbolTable
+    @private = new SymbolTable
+
+  toJSON: () =>
+    @public.toJSON()
+
 
 module.exports = Context

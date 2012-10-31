@@ -19,17 +19,17 @@ load_imto_files = (filename) ->
       actual = undefined
       pending = false
 
-      if lines[index].indexOf("#") is 0
+      if lines[index].indexOf("#") is 0 and lines[index].indexOf("#=>") isnt 0
         first = lines[index]
         first = first.substr(1) if pending = (first.substr(0,2) is "#-")
         while lines[index].indexOf("#") is 0
           index += 1
         test_description = "#{first.substr(1).trim()}"
 
-      if lines[index].indexOf("$") is 0
+      if lines[index].indexOf("#") isnt 0
         start = index
-        while index < lines.length and lines[index].indexOf("$ ") is 0
-          lines[index] = lines[index].substr(2)
+        while index < lines.length and lines[index].indexOf("#") isnt 0
+          lines[index] = lines[index]
           index += 1 
         try
           interpreter = new imto.Interpreter()
@@ -39,9 +39,9 @@ load_imto_files = (filename) ->
           actual = ex.toString()
 
       start = index
-      while index < lines.length and not (lines[index][0] in ["$","#"])
+      while index < lines.length and lines[index].indexOf("#=>") is 0
         index += 1
-      str = lines.slice(start,index).join("\n")
+      str = (line.substr(3) for line in lines.slice(start,index)).join("\n")
       if !pending and str?.length > 0
         expected = 
           try

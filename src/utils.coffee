@@ -26,7 +26,7 @@ sprint = (list, indent = "") ->
   (for node in list
     head = "#{indent}(#{clc.green(node.type)}"
     if node.type is "block"
-      "#{head}\n#{sprint(node.parse(),indent+"  ")}\n#{indent})"
+      "#{head}\n#{sprint(node.parse().all(),indent+"  ")}\n#{indent})"
     else if node.type is "function"
       "#{head}\n#{sprint([node.body],indent+"  ")}\n#{indent})"
     else if node.type is "execute"

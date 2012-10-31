@@ -29,18 +29,21 @@ module.exports = class Evaluator
   # assignment
   assignment: (node) =>
     if node.type is "assignment"
-      @context.set node.symbol, @exec node.value
+      @context.private.set node.symbol, @exec node.value
 
   # property assignment
   hash_assignment: (node) =>
     if node.type is "hash_assignment"
-      @context.set node.symbol, @exec node.value
+      @context.public.set node.symbol, @exec node.value
       @context.toJSON()
 
   # execute
   execute: (node) =>
     if node.type is "execute"
-      res = @context.get node.symbol
+      # todo factor this into resolve()
+      res = @context.public.get node.symbol
+      unless res
+        res = @context.private.get node.symbol
       unless res
         throw new RuntimeError("Undefined variable: #{node.symbol}", tracking: node.tracking.start)
       if res.type is "function"
