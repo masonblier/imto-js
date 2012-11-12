@@ -29,7 +29,10 @@ module.exports = class Evaluator
   # assignment
   assignment: (node) =>
     if node.type is "assignment"
-      @context.private.set node.symbol, @exec node.value
+      if node.symbol.charAt(0) is "@"
+        @context.public.set node.symbol.substr(1), @exec node.value
+      else
+        @context.private.set node.symbol, @exec node.value
 
   # property assignment
   hash_assignment: (node) =>
