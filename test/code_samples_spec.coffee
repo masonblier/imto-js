@@ -14,6 +14,7 @@ load_imto_files = (filename) ->
       "utf8"
     ).split("\n") when not /^[ \t]*$/.test line)
     index = 0
+    interpreter = new imto.Interpreter()
     while index < lines.length
       test_description = undefined
       actual = undefined
@@ -32,7 +33,6 @@ load_imto_files = (filename) ->
           lines[index] = lines[index]
           index += 1 
         try
-          interpreter = new imto.Interpreter()
           res = interpreter.eval lines.slice(start,index).join("\n")
           actual = res
         catch ex
@@ -54,7 +54,7 @@ load_imto_files = (filename) ->
           catch e
             str
         make_test expected, actual, test_description
-      else
+      else if test_description
         xit test_description
 
 describe 'code samples', ->

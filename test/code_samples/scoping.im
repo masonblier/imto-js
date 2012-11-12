@@ -1,0 +1,27 @@
+MyClass =
+  @ = {}
+  private_class_variable = "always nope"
+  @public_class_property = "hello"
+  ->
+    private_variable = "nope"
+
+    constructor: ->
+      @public_property = "hi"
+    this_is_class_method: ->
+      "#{private_variable} #{private_class_variable}"
+
+# public instance variable
+(new MyClass).public_variable
+#=> "hi"
+
+# private variable is private
+(new MyClass).private_variable
+#=> "{0,4} Undefined 'private_variable'"
+
+# call class method
+(new MyClass).this_is_a_class_method
+#=> "nope always nope"
+
+# public class property
+MyClass.public_class_property
+#=> "hello"

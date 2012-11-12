@@ -1,17 +1,21 @@
 # catch poor hash syntax
-#a: 1,
+a: 1,
 #=> "{0,4} Unfinished hash"
+
 # single element
   a: 2
 #=> { "a": 2 }
+
 # multi element
   a: 2  
   b: 3
 #=> {"a": 2, "b": 3}
+
 # usage within a block
   b = 2
   a: 3
 #=> {"a": 3}
+
 # usage within a block with context
   @b = 2
   a: 3
