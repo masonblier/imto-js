@@ -14,11 +14,12 @@ load_imto_files = (filename) ->
       "utf8"
     ).split("\n") when not /^[ \t]*$/.test line)
     index = 0
-    interpreter = new imto.Interpreter()
+    
     while index < lines.length
       test_description = undefined
       actual = undefined
       pending = false
+      interpreter = new imto.Interpreter()
 
       if lines[index].indexOf("#") is 0 and lines[index].indexOf("#=>") isnt 0
         first = lines[index]
